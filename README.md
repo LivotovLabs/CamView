@@ -6,7 +6,14 @@ CAMView
 
  The main goal of this project is to have a simple and clean component, which can be simply added to an existing
  view hierarchy of any existing activity, fragment or other layout of the hosting application and which will internally    handle all dirty routines for a camera initialization, configuration, streaming and orientation changes.
- 
+
+
+Status
+======
+
+ The component is now fully functional and is around beta release. 
+ Please feel free to share your comments and suggestions, report any bugs or submit your pull requests (evem better :)
+
 
 Usage
 =====
