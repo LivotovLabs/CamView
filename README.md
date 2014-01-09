@@ -34,7 +34,7 @@ Usage
      ...
 
      <eu.livotov.labs.android.camview.CAMView
-             android:id="@+id/scanner_fragment_cameraview"
+             android:id="@+id/my_camera_view"
              android:layout_width="match_parent"
              android:layout_height="match_parent"
              android:layout_gravity="center"/>
@@ -48,7 +48,7 @@ Usage
  2. Get CAMView instance and register a listener (optionally, if you nedd to process live stream frames only)
 
  ```
- cameraView = (CAMView) findViewById(R.id.my_camera_activity_layout);
+ cameraView = (CAMView) findViewById(R.id.my_camera_view);
  cameraView.setCamViewListener(this);
  ```
 
