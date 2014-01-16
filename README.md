@@ -1,12 +1,18 @@
 CAMView
 =======
 
- Android component to display live preview from the device camera and optionally provide the preview data for any
- external decoding processes within application.
+ Android component to display live preview picture from the device camera and optionally provide the preview data 
+ for any external decoding processes within application.
 
- The main goal of this project is to have simple and clean component acting just like a view, which can me added to
- any activity, fragment or any other layout of the hosting application and which can internally handle all routines
- for camera initialization and support as well as for orientation changes and picture alignment stuff.
+ The main goal of this project is to have a simple and clean component, which can be simply added to an existing
+ view hierarchy of any existing activity, fragment or other layout of the hosting application and which will internally    handle all dirty routines for a camera initialization, configuration, streaming and orientation changes.
+
+
+Status
+======
+
+ The component is now fully functional and is around beta release. 
+ Please feel free to share your comments and suggestions, report any bugs or submit your pull requests (evem better :)
 
 
 Usage
@@ -28,7 +34,7 @@ Usage
      ...
 
      <eu.livotov.labs.android.camview.CAMView
-             android:id="@+id/scanner_fragment_cameraview"
+             android:id="@+id/my_camera_view"
              android:layout_width="match_parent"
              android:layout_height="match_parent"
              android:layout_gravity="center"/>
@@ -39,22 +45,22 @@ Usage
  ```
 
 
- 2. Inflate CAMView and register a listener (optionally)
+ 2. Get CAMView instance and register a listener (optionally, if you nedd to process live stream frames only)
 
  ```
- cameraView = (CAMView) findViewById(R.id.my_camera_activity_layout);
+ cameraView = (CAMView) findViewById(R.id.my_camera_view);
  cameraView.setCamViewListener(this);
  ```
 
 
- 3. Begin streaming live picture from camera. You can now rotate you device - camera stream will be adjusted automatically !
+ 3. Begin streaming live picture from the camera.
 
  ```
  cameraView.start();
  ```
 
 
- 3.1 Or if you need to display stream from a specific camera:
+ 3.1 Or, if you need to display stream from the specific camera:
 
  ```
  // Get the list of availabvle cameras
@@ -65,17 +71,17 @@ Usage
  ```
 
 
- 4. If you need to process the picture from a camera (for instance, for a barcode recognition) - use the listener callbacks
+ 4. If you need to process live data from the camera (for instance, for a barcode recognition) - use the listener callback:
 
  ```
      public void onPreviewData(final byte[] data, final int previewFormat, final Camera.Size size)
      {
-         // do smth with the sample frame from the camera here
+         // do smth with the frame from the camera here
      }
  ```
 
 
- 5. Stop streaming live preview from a camera
+ 5. Stop streaming from the camera
 
  ```
  cameraView.stop();
