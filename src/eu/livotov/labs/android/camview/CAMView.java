@@ -1,6 +1,7 @@
 package eu.livotov.labs.android.camview;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.os.Build;
@@ -33,6 +34,9 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     private Handler autoFocusHandler;
     private CAMViewListener camViewListener;
 
+    private transient boolean live = false;
+    private int lastUsedCameraId = -1;
+
     public CAMView(final Context context)
     {
         super(context);
@@ -53,16 +57,6 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     private void initUI()
     {
-        surface = new SurfaceView(getContext());
-
-        addView(surface);
-
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) surface.getLayoutParams();
-        params.gravity = Gravity.CENTER;
-        params.width = LayoutParams.MATCH_PARENT;
-        params.height = LayoutParams.MATCH_PARENT;
-        surface.setLayoutParams(params);
-
         autoFocusHandler = new Handler();
     }
 
@@ -93,13 +87,20 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     }
 
 
-    public void stop()
+    public synchronized void stop()
     {
+        live = false;
+
         if (camera != null)
         {
             camera.setPreviewCallback(null);
             camera.release();
             camera = null;
+        }
+
+        if (surfaceHolder!=null)
+        {
+            surfaceHolder.removeCallback(this);
         }
     }
 
@@ -108,7 +109,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         start(findDefaultCameraId());
     }
 
-    public void start(final int cameraId)
+    public synchronized void start(final int cameraId)
     {
         this.cameraId = cameraId;
         this.camera = setupCamera(cameraId);
@@ -135,6 +136,16 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             }
         }
 
+        removeAllViews();
+        surface = new SurfaceView(getContext());
+        addView(surface);
+
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) surface.getLayoutParams();
+        params.gravity = Gravity.CENTER;
+        params.width = LayoutParams.MATCH_PARENT;
+        params.height = LayoutParams.MATCH_PARENT;
+        surface.setLayoutParams(params);
+
         surfaceHolder = surface.getHolder();
         surfaceHolder.addCallback(this);
 
@@ -149,6 +160,9 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 Log.e(getClass().getSimpleName(), "Failed to set surface holder to SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS, using it as is.", err);
             }
         }
+
+        lastUsedCameraId = cameraId;
+        live = true;
     }
 
     public void surfaceCreated(SurfaceHolder holder)
@@ -291,6 +305,30 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         }
 
         return best >= 0 ? sizes.get(best) : null;
+    }
+
+    protected void onConfigurationChanged(final Configuration newConfig)
+    {
+        super.onConfigurationChanged(newConfig);
+
+        if (live)
+        {
+            postDelayed(new Runnable()
+            {
+                public void run()
+                {
+                    stop();
+
+                    if (lastUsedCameraId>=0)
+                    {
+                        start(lastUsedCameraId);
+                    } else
+                    {
+                        start();
+                    }
+                }
+            }, 50);
+        }
     }
 
     public void onPreviewFrame(byte[] data, Camera camera)
