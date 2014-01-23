@@ -65,7 +65,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         this.camViewListener = camViewListener;
     }
 
-    public Collection<CameraEnumeration> enumarateCameras()
+    public static Collection<CameraEnumeration> enumarateCameras()
     {
         if (Build.VERSION.SDK_INT < 9)
         {
@@ -86,6 +86,20 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         return cameras;
     }
 
+    public static CameraEnumeration findFrontCamera()
+    {
+        Collection<CameraEnumeration> cams = enumarateCameras();
+
+        for (CameraEnumeration cam : cams)
+        {
+            if (cam.isFrontCamera())
+            {
+                return cam;
+            }
+        }
+
+        return null;
+    }
 
     public synchronized void stop()
     {
@@ -199,6 +213,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             Camera.Parameters p = camera.getParameters();
 
             int result = 90;
+            int outputResult = 90;
 
             if (Build.VERSION.SDK_INT > 7)
             {
@@ -229,6 +244,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                     if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT)
                     {
                         result = (info.orientation + degrees) % 360;
+                        outputResult = (info.orientation + degrees) % 360;
                         result = (360 - result) % 360;  // compensate the mirror
                     } else
                     {  // back-facing
@@ -251,6 +267,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 }
             }
 
+            p.setRotation(outputResult);
             camera.setPreviewDisplay(surfaceHolder);
             camera.setPreviewCallback(previewCallback);
 
@@ -470,6 +487,16 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         }
 
         return parameters;
+    }
+
+    public boolean isStreaming()
+    {
+        return camera!=null;
+    }
+
+    public Camera getCamera()
+    {
+        return camera;
     }
 
     public interface CAMViewListener
