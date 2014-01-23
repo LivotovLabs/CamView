@@ -1,4 +1,4 @@
-CAMView
+CAMView  v1.0 beta-1
 =======
 
  Android component to display live preview picture from the device camera and optionally provide the preview data 
