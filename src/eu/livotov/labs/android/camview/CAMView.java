@@ -1,5 +1,6 @@
 package eu.livotov.labs.android.camview;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.ImageFormat;
@@ -17,12 +18,27 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * (c) Livotov Labs Ltd. 2012
- * Date: 06/12/2013
+ * (c) Livotov Labs Ltd. 2014
+ * <p>This is the main view class to be used in layouts or other UI's where the live streaming from device camera is required.</p>
+ *
+ * <p>Just put this class to a layout or add programmatically at runtime to your activity/fragment, then call start(...);
+ * when you need to start streaming live picture and stop(); when you need to stop the streaming.</p>
+ *
+ * <p>Set your listener via setCamViewListener(...); to receive picture frames for further processing (barcode recognition, etc)</p>
  */
 public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Camera.PreviewCallback, Camera.AutoFocusCallback
 {
 
+    private static final Collection<String> FOCUS_MODES_CALLING_AF;
+
+    static
+    {
+        FOCUS_MODES_CALLING_AF = new ArrayList<String>(2);
+        FOCUS_MODES_CALLING_AF.add(Camera.Parameters.FOCUS_MODE_AUTO);
+        FOCUS_MODES_CALLING_AF.add(Camera.Parameters.FOCUS_MODE_MACRO);
+    }
+
+    private static final long AUTO_FOCUS_INTERVAL_MS = 1000L;
     private SurfaceHolder surfaceHolder;
     private SurfaceView surface;
     private Camera camera;
@@ -30,12 +46,20 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     private int cameraId = -1;
     private Camera.PreviewCallback previewCallback;
     private Camera.AutoFocusCallback autoFocusCallback;
-
     private Handler autoFocusHandler;
     private CAMViewListener camViewListener;
-
     private transient boolean live = false;
     private int lastUsedCameraId = -1;
+    private boolean useAutoFocus = true;
+    private boolean disableContinuousFocus = false;
+    private boolean captureStreamingFrames = false;
+
+    /**
+     * We do store here initial state (at the moment of last live streaming start) of preview capture mode. This is used
+     * to decide should we trigger camera re-initialization when the <code>setCaptureStreamingFrames</code> method is called
+     * during the live process, so user may enable/disable preview capturing at runtime without disturbing the picture view
+     */
+    private boolean initialCaptureStreamingFramesMode = false;
 
     public CAMView(final Context context)
     {
@@ -55,16 +79,11 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         initUI();
     }
 
-    private void initUI()
-    {
-        autoFocusHandler = new Handler();
-    }
-
-    public void setCamViewListener(final CAMViewListener camViewListener)
-    {
-        this.camViewListener = camViewListener;
-    }
-
+    /**
+     * Provides the list of all cameras, available on the device
+     * @return collection of CameraEnumeration objects, where each object represent the single camera and its main features
+     */
+    @TargetApi(9)
     public static Collection<CameraEnumeration> enumarateCameras()
     {
         if (Build.VERSION.SDK_INT < 9)
@@ -86,6 +105,10 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         return cameras;
     }
 
+    /**
+     * Finds the first front camera on the device.
+     * @return First front camera found or null, if device does not have one.
+     */
     public static CameraEnumeration findFrontCamera()
     {
         Collection<CameraEnumeration> cams = enumarateCameras();
@@ -97,12 +120,84 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 return cam;
             }
         }
-
         return null;
     }
 
+    public boolean isUseAutoFocus()
+    {
+        return useAutoFocus;
+    }
+
+    /**
+     * Switches AF mode on or off. When AF is on, camera will try to focus the current scene once live preview is started. If the
+     * continuous AF mode is ON (it is ON by default), camera will be trying keep the scene always in focus all the time.
+     * @param useAutoFocus
+     */
+    public void setUseAutoFocus(final boolean useAutoFocus)
+    {
+        this.useAutoFocus = useAutoFocus;
+        restartStreamingIfRunning();
+    }
+
+    public boolean isDisableContinuousFocus()
+    {
+        return disableContinuousFocus;
+    }
+
+    /**
+     * Disables continuous AF mode. When disabled, camera will focus only once, after the streaming is started by the start(...); method.
+     * @param disableContinuousFocus
+     */
+    public void setDisableContinuousFocus(final boolean disableContinuousFocus)
+    {
+        this.disableContinuousFocus = disableContinuousFocus;
+        restartStreamingIfRunning();
+    }
+
+    private void initUI()
+    {
+        autoFocusHandler = new Handler();
+    }
+
+    public boolean isCaptureStreamingFrames()
+    {
+        return captureStreamingFrames;
+    }
+
+    /**
+     * <p>Toggles live streaming frames capture. OFF by default. When capturing is ON and CAMView events listener is set via
+     * the setCamViewListener(...), CAMView will be constantly capturing and sending bitmap frames to the corresponding callback
+     * method for further user processing, such as barcode recognition, etc.</p>
+     *
+     * <p><b>WARNING: </b>frame capture extensively "eats" memory on the device as it send full frame bitmaps constantly from the camera. If you
+     * don't need this feature, do not turn it ON to avoid stressing device memory and GC.</p>
+     * @param captureStreamingFrames
+     */
+    public void setCaptureStreamingFrames(final boolean captureStreamingFrames)
+    {
+        this.captureStreamingFrames = captureStreamingFrames;
+
+        if (!initialCaptureStreamingFramesMode)
+        {
+            restartStreamingIfRunning();
+        }
+    }
+
+    /**
+     * Sets the listener to receive streaming events and picture frames from the camera
+     * @param camViewListener
+     */
+    public void setCamViewListener(final CAMViewListener camViewListener)
+    {
+        this.camViewListener = camViewListener;
+    }
+
+    /**
+     * Stops the live streaming process if it is currently running. Does nothing, if live streaming was already stopped or not started.
+     */
     public synchronized void stop()
     {
+
         live = false;
 
         if (camera != null)
@@ -112,23 +207,36 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             camera = null;
         }
 
-        if (surfaceHolder!=null)
+        if (surfaceHolder != null)
         {
-            surfaceHolder.removeCallback(this);
+            try
+            {
+                surfaceHolder.removeCallback(this);
+            } catch (Throwable ignored)
+            {
+            }
         }
     }
 
+    /**
+     * Starts the live streaming using device default camera.
+     */
     public void start()
     {
         start(findDefaultCameraId());
     }
 
+    /**
+     * Starts the live streaming using provided camera ID.
+     * @param cameraId device camera identifier
+     */
     public synchronized void start(final int cameraId)
     {
         this.cameraId = cameraId;
         this.camera = setupCamera(cameraId);
         previewCallback = this;
         autoFocusCallback = this;
+        initialCaptureStreamingFramesMode = captureStreamingFrames;
 
         try
         {
@@ -137,7 +245,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             camera.setParameters(parameters);
         } catch (Throwable err)
         {
-            Log.e(getClass().getSimpleName(), "Master parameters set was rejected by a camera, trying failsafe one.", err);
+            Log.e(getClass().getSimpleName(), "Master parameters set was rejected by the camera, trying failsafe one now...", err);
 
             try
             {
@@ -146,7 +254,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 camera.setParameters(parameters);
             } catch (Throwable err2)
             {
-                Log.e(getClass().getSimpleName(), "Failsafe parameters set was rejected by a camera, trying to use it as is.", err2);
+                Log.e(getClass().getSimpleName(), "Failsafe parameters set was rejected by the camera, trying to use camera's default configuration.", err2);
             }
         }
 
@@ -161,7 +269,11 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         surface.setLayoutParams(params);
 
         surfaceHolder = surface.getHolder();
-        surfaceHolder.addCallback(this);
+
+        if (captureStreamingFrames)
+        {
+            surfaceHolder.addCallback(this);
+        }
 
         if (Build.VERSION.SDK_INT < 11)
         {
@@ -212,48 +324,16 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         {
             Camera.Parameters p = camera.getParameters();
 
+
             int result = 90;
             int outputResult = 90;
 
-            if (Build.VERSION.SDK_INT > 7)
+
+            if (Build.VERSION.SDK_INT > 8)
             {
-                try
-                {
-                    android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
-                    android.hardware.Camera.getCameraInfo(cameraId, info);
-
-                    int rotation = ((WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
-                    int degrees = 0;
-
-                    switch (rotation)
-                    {
-                        case Surface.ROTATION_0:
-                            degrees = 0;
-                            break;
-                        case Surface.ROTATION_90:
-                            degrees = 90;
-                            break;
-                        case Surface.ROTATION_180:
-                            degrees = 180;
-                            break;
-                        case Surface.ROTATION_270:
-                            degrees = 270;
-                            break;
-                    }
-
-                    if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT)
-                    {
-                        result = (info.orientation + degrees) % 360;
-                        outputResult = (info.orientation + degrees) % 360;
-                        result = (360 - result) % 360;  // compensate the mirror
-                    } else
-                    {  // back-facing
-                        result = (info.orientation - degrees + 360) % 360;
-                    }
-                } catch (Throwable err)
-                {
-                    // very bad devices goes here
-                }
+                int[] results = calculateResults(result, outputResult);
+                result = results[0];
+                outputResult = results[1];
             }
 
             if (Build.VERSION.SDK_INT > 7)
@@ -300,6 +380,51 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         }
     }
 
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
+    private int[] calculateResults(int _result, int _outputResult)
+    {
+        int result = _result;
+        int outputResult = _outputResult;
+
+        try
+        {
+            android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
+            android.hardware.Camera.getCameraInfo(cameraId, info);
+
+            int rotation = ((WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
+            int degrees = 0;
+
+            switch (rotation)
+            {
+                case Surface.ROTATION_0:
+                    degrees = 0;
+                    break;
+                case Surface.ROTATION_90:
+                    degrees = 90;
+                    break;
+                case Surface.ROTATION_180:
+                    degrees = 180;
+                    break;
+                case Surface.ROTATION_270:
+                    degrees = 270;
+                    break;
+            }
+
+            if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT)
+            {
+                result = (info.orientation + degrees) % 360;
+                outputResult = (info.orientation + degrees) % 360;
+                result = (360 - result) % 360;  // compensate the mirror
+            } else
+            {  // back-facing
+                result = (info.orientation - degrees + 360) % 360;
+            }
+        } catch (Throwable err)
+        {
+            // very bad devices goes here
+        }
+        return new int[]{result, outputResult};
+    }
 
     private Camera.Size findClosestPreviewSize(List<Camera.Size> sizes)
     {
@@ -327,7 +452,11 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     protected void onConfigurationChanged(final Configuration newConfig)
     {
         super.onConfigurationChanged(newConfig);
+        restartStreamingIfRunning();
+    }
 
+    private void restartStreamingIfRunning()
+    {
         if (live)
         {
             postDelayed(new Runnable()
@@ -336,7 +465,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 {
                     stop();
 
-                    if (lastUsedCameraId>=0)
+                    if (lastUsedCameraId >= 0)
                     {
                         start(lastUsedCameraId);
                     } else
@@ -350,7 +479,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public void onPreviewFrame(byte[] data, Camera camera)
     {
-        if (camViewListener != null)
+        if (camViewListener != null && captureStreamingFrames)
         {
             try
             {
@@ -363,18 +492,21 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public void onAutoFocus(boolean success, final Camera camera)
     {
-        autoFocusHandler.postDelayed(new Runnable()
+        if (autoFocusCallback != null)
         {
-            public void run()
+            autoFocusHandler.postDelayed(new Runnable()
             {
-                try
+                public void run()
                 {
-                    camera.autoFocus(CAMView.this);
-                } catch (Throwable ignored)
-                {
+                    try
+                    {
+                        camera.autoFocus(autoFocusCallback);
+                    } catch (Throwable ignored)
+                    {
+                    }
                 }
-            }
-        }, 1000);
+            }, AUTO_FOCUS_INTERVAL_MS);
+        }
     }
 
     protected int findDefaultCameraId()
@@ -384,26 +516,32 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             return 0;
         } else
         {
-            final int camerasCount = Camera.getNumberOfCameras();
-            final Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-
-            for (int id = 0; id < camerasCount; id++)
-            {
-                Camera.getCameraInfo(id, cameraInfo);
-
-                if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK)
-                {
-                    try
-                    {
-                        return id;
-                    } catch (RuntimeException e)
-                    {
-                    }
-                }
-            }
+            return findCamera();
         }
 
-        throw new RuntimeException("Did not find back camera on this device");
+    }
+
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
+    private int findCamera()
+    {
+        final int camerasCount = Camera.getNumberOfCameras();
+        final Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+
+        for (int id = 0; id < camerasCount; id++)
+        {
+            Camera.getCameraInfo(id, cameraInfo);
+
+            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK)
+            {
+                return id;
+            }
+        }
+        if (camerasCount > 0)
+        {
+            return 0;
+        }
+
+        throw new RuntimeException("Did not find any camera on this device");
     }
 
     protected Camera setupCamera(final int cameraId)
@@ -415,13 +553,39 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 return Camera.open();
             } else
             {
-                return Camera.open(cameraId);
+                return openCamera(cameraId);
             }
         } catch (Throwable e)
         {
-            throw new RuntimeException("Failed to open a camera with id " + cameraId + ": " + e.getMessage(), e);
+            throw new RuntimeException("Failed to open the camera with id " + cameraId + ": " + e.getMessage(), e);
         }
     }
+
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
+    private Camera openCamera(final int cameraId)
+    {
+        return Camera.open(cameraId);
+    }
+
+
+    private String findSettableValue(Collection<String> supportedValues, String... desiredValues)
+    {
+        //Log.i(TAG, "Supported values: " + supportedValues);
+        String result = null;
+        if (supportedValues != null)
+        {
+            for (String desiredValue : desiredValues)
+            {
+                if (supportedValues.contains(desiredValue))
+                {
+                    result = desiredValue;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
 
     private Camera.Parameters getMainCameraParameters()
     {
@@ -429,28 +593,12 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
         if (Build.VERSION.SDK_INT >= 9)
         {
-            for (String f : parameters.getSupportedFocusModes())
-            {
-                if (f == Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)
-                {
-                    parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-                    autoFocusCallback = null;
-                    break;
-                }
-            }
+            setFocusMode(parameters);
         }
 
         if (Build.VERSION.SDK_INT > 13)
         {
-            try
-            {
-                if (parameters.isAutoExposureLockSupported())
-                {
-                    parameters.setAutoExposureLock(false);
-                }
-            } catch (Throwable ignored)
-            {
-            }
+            setAutoExposureLock(parameters);
         }
 
         if (Build.VERSION.SDK_INT > 7)
@@ -469,39 +617,118 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         return parameters;
     }
 
+    @TargetApi(14)
+    private String getFocusMode14(List<String> focusModes)
+    {
+        if (disableContinuousFocus)
+        {
+            return findSettableValue(focusModes, Camera.Parameters.FOCUS_MODE_AUTO);
+        } else
+        {
+            return findSettableValue(focusModes,
+                                     Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE,
+                                     Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO,
+                                     Camera.Parameters.FOCUS_MODE_AUTO);
+        }
+    }
+
+    @TargetApi(9)
+    private String getFocusMode9(List<String> focusModes)
+    {
+        return findSettableValue(focusModes, Camera.Parameters.FOCUS_MODE_AUTO);
+    }
+
+    @TargetApi(9)
+    private void setFocusMode(Camera.Parameters parameters)
+    {
+        String focusMode;
+
+        List<String> focusModes = parameters.getSupportedFocusModes();
+
+        if (Build.VERSION.SDK_INT >= 14)
+        {
+            focusMode = getFocusMode14(focusModes);
+        } else
+        {
+            focusMode = getFocusMode9(focusModes);
+        }
+
+        if (focusMode == null)
+        {
+            focusMode = findSettableValue(focusModes,
+                                          Camera.Parameters.FOCUS_MODE_MACRO,
+                                          Camera.Parameters.FOCUS_MODE_EDOF);
+        }
+
+        if (focusMode != null)
+        {
+            parameters.setFocusMode(focusMode);
+            boolean af = useAutoFocus && FOCUS_MODES_CALLING_AF.contains(focusMode);
+            autoFocusCallback = af ? this : null;
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    private void setAutoExposureLock(Camera.Parameters parameters)
+    {
+        try
+        {
+            if (parameters.isAutoExposureLockSupported())
+            {
+                parameters.setAutoExposureLock(false);
+            }
+        } catch (Throwable ignored)
+        {
+        }
+    }
+
     private Camera.Parameters getFailsafeCameraParameters()
     {
         Camera.Parameters parameters = camera.getParameters();
 
         if (Build.VERSION.SDK_INT >= 9)
         {
-            for (String f : parameters.getSupportedFocusModes())
-            {
-                if (f == Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)
-                {
-                    parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-                    autoFocusCallback = null;
-                    break;
-                }
-            }
+            setFocusMode(parameters);
         }
-
         return parameters;
     }
 
-    public boolean isStreaming()
+    /**
+     * Tells the current streaming status
+     * @return <code>true</code> if the live streaming is currently active
+     */
+    public boolean isLive()
     {
-        return camera!=null;
+        return camera != null && live;
     }
 
+    /**
+     * Returns the system object of the current camera. This method effective only when live streaming is running. It will
+     * return null if not.
+     * @return Camera object of the current camera in use.
+     */
     public Camera getCamera()
     {
         return camera;
     }
 
+    /**
+     * Callback interface to receive preview bitmaps and other events from the CAMView
+     */
     public interface CAMViewListener
     {
 
+        /**
+         * <p>Called asynchronously in non-ui thread when next preview frame arrives from the camera. Note, that you must enable
+         * preview frames capturing by calling <code>setCaptureStreamingFrames(true)</code>.</p>
+         *
+         * <p>Preview data comes directly from the camera. Please consult with Android documentation on data format and preview
+         * format constants</p>
+         *
+         * @param data preview RAW data
+         * @param previewFormat preview format
+         * @param size preview size
+         */
         void onPreviewData(byte[] data, int previewFormat, Camera.Size size);
     }
 }

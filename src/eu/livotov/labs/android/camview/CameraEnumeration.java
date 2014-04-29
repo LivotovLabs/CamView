@@ -3,8 +3,8 @@ package eu.livotov.labs.android.camview;
 import android.hardware.Camera;
 
 /**
- * (c) Livotov Labs Ltd. 2012
- * Date: 09/01/2014
+ * (c) Livotov Labs Ltd. 2014
+ * This is the simple utility object to hold most important device camera parameters in a bit more developer friendly way.
  */
 public class CameraEnumeration
 {
