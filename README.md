@@ -1,10 +1,10 @@
-CAMView  v1.0 beta-5
+CAMView v1.0 beta-5
 =======
 
  Android view component to display the live picture from device camera and optionally provide developer with the 
  preview data for any external decoding processes within application.
 
- The main goal of this project is to have a simple and clean view which can be easily put to an existing
+ The main goal of this project is to have a simple and clean view component which can be easily put to an existing
  view hierarchy of any existing activity, fragment or just to a layout file like any other Android component such as
  TextView, ImageView, etc. 
  
@@ -82,11 +82,21 @@ Usage
  ```
      cameraView.setCaptureStreamingFrames(true);
      cameraView.setCamViewListener(this);
+     
+     ... 
+     
      public void onPreviewData(final byte[] data, final int previewFormat, final Camera.Size size)
      {
-         // do smth with the frame from the camera here
+         // do smth with the frame from the camera here - it comes directly from the SurfaceView object,
+         so deal with the data as usual.
      }
  ```
+   Do not forget to disable preview frames capturing when you don't need them anymore - this will reduce load
+   to device CPU and memory. You may enable capturing back at any time, once you need it again.
+   
+ ```
+   cameraView.setCaptureStreamingFrames(false);
+ ```  
 
 
  5. Stop streaming from the camera
