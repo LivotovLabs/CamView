@@ -1,25 +1,31 @@
-CAMView  v1.0 beta-1
+CAMView  v1.0 beta-5
 =======
 
- Android component to display live preview picture from the device camera and optionally provide the preview data 
- for any external decoding processes within application.
+ Android view component to display the live picture from device camera and optionally provide developer with the 
+ preview data for any external decoding processes within application.
 
- The main goal of this project is to have a simple and clean component, which can be simply added to an existing
- view hierarchy of any existing activity, fragment or other layout of the hosting application and which will internally    handle all dirty routines for a camera initialization, configuration, streaming and orientation changes.
+ The main goal of this project is to have a simple and clean view which can be easily put to an existing
+ view hierarchy of any existing activity, fragment or just to a layout file like any other Android component such as
+ TextView, ImageView, etc. 
+ 
+ CAMView takes all dirty job for handling all routines for a camera initialization, configuration, streaming, 
+ orientation changes, device and cameras compatibility options, etc, etc. So just put it to your layout and you're armed
+ with the live picture from the camera.
 
 
 Status
 ======
 
- The component is now fully functional and is around beta release. 
- Please feel free to share your comments and suggestions, report any bugs or submit your pull requests (evem better :)
+ The component is now fully functional and is around 1.0 release. 
+ Please feel free to share your comments and suggestions, report any bugs or submit your pull requests 
+ (which is even better :)
 
 
 Usage
 =====
 
- Usage is very simple - just add this component to your view hierarchy and invoke the start() method when you need to
- begin receiving live stream from the camera:
+ Usage is very straightforward - just add this component to your layout.xml (or programmatically at runtiume)
+ and invoke the start() method when you need to start displaying the live stream from camera:
 
 
  1. Add to layout
@@ -45,22 +51,21 @@ Usage
  ```
 
 
- 2. Get CAMView instance and register a listener (optionally, if you nedd to process live stream frames only)
+ 2. Get the CAMView instance
 
  ```
  cameraView = (CAMView) findViewById(R.id.my_camera_view);
- cameraView.setCamViewListener(this);
  ```
 
 
- 3. Begin streaming live picture from the camera.
+ 3. Begin streaming live picture from the default camera.
 
  ```
  cameraView.start();
  ```
 
 
- 3.1 Or, if you need to display stream from the specific camera:
+ 3.1 Or, if you need to work with the specific camera:
 
  ```
  // Get the list of availabvle cameras
@@ -71,9 +76,12 @@ Usage
  ```
 
 
- 4. If you need to process live data from the camera (for instance, for a barcode recognition) - use the listener callback:
+ 4. If you need to process live data from the camera during the live streaming process (for instance, 
+    for a barcode recognition) - just enable this and use the listener callback:
 
  ```
+     cameraView.setCaptureStreamingFrames(true);
+     cameraView.setCamViewListener(this);
      public void onPreviewData(final byte[] data, final int previewFormat, final Camera.Size size)
      {
          // do smth with the frame from the camera here
