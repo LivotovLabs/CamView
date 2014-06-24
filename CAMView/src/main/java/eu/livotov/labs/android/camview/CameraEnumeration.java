@@ -1,5 +1,6 @@
 package eu.livotov.labs.android.camview;
 
+import android.annotation.TargetApi;
 import android.hardware.Camera;
 
 /**
@@ -13,6 +14,7 @@ public class CameraEnumeration
     private boolean frontCamera;
     private Camera.CameraInfo cameraInfo;
 
+    @TargetApi(11)
     public CameraEnumeration(final int cameraId, final Camera.CameraInfo cameraInfo)
     {
         this.cameraId = cameraId;
