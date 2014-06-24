@@ -378,14 +378,25 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 public void run()
                 {
                     stop();
-
-                    if (lastUsedCameraId >= 0)
+                    postDelayed(new Runnable()
                     {
-                        start(lastUsedCameraId);
-                    } else
-                    {
-                        start();
-                    }
+                        public void run()
+                        {
+                            try
+                            {
+                                if (lastUsedCameraId >= 0)
+                                {
+                                    start(lastUsedCameraId);
+                                } else
+                                {
+                                    start();
+                                }
+                            } catch (Throwable err)
+                            {
+                                Log.e(getClass().getSimpleName(),"Failed to re-open the camera after configuration change: " + err.getMessage(),err);
+                            }
+                        }
+                    }, 100);
                 }
             }, 50);
         }
