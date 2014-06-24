@@ -6,7 +6,6 @@ import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.os.Build;
-import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.*;
@@ -26,7 +25,7 @@ import java.util.List;
  *
  * <p>Set your listener via setCamViewListener(...); to receive picture frames for further processing (barcode recognition, etc)</p>
  */
-public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Camera.PreviewCallback, Camera.AutoFocusCallback
+public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Camera.PreviewCallback
 {
 
     private static final Collection<String> FOCUS_MODES_CALLING_AF;
@@ -45,14 +44,13 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     private int previewFormat = ImageFormat.NV21;
     private int cameraId = -1;
     private Camera.PreviewCallback previewCallback;
-    private Camera.AutoFocusCallback autoFocusCallback;
-    private Handler autoFocusHandler;
     private CAMViewListener camViewListener;
     private transient boolean live = false;
     private int lastUsedCameraId = -1;
     private boolean useAutoFocus = true;
     private boolean disableContinuousFocus = false;
     private boolean captureStreamingFrames = false;
+    private AutoFocusManager autoFocusManager = null;
 
     /**
      * We do store here initial state (at the moment of last live streaming start) of preview capture mode. This is used
@@ -156,7 +154,6 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     private void initUI()
     {
-        autoFocusHandler = new Handler();
     }
 
     public boolean isCaptureStreamingFrames()
@@ -200,6 +197,12 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
         live = false;
 
+        if (autoFocusManager!=null)
+        {
+            autoFocusManager.stop();
+            autoFocusManager = null;
+        }
+
         if (camera != null)
         {
             camera.setPreviewCallback(null);
@@ -235,7 +238,6 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         this.cameraId = cameraId;
         this.camera = setupCamera(cameraId);
         previewCallback = this;
-        autoFocusCallback = this;
         initialCaptureStreamingFramesMode = captureStreamingFrames;
 
         try
@@ -373,7 +375,14 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
             camera.setParameters(p);
             camera.startPreview();
-            camera.autoFocus(autoFocusCallback);
+
+            if (useAutoFocus)
+            {
+                autoFocusManager = new AutoFocusManager(getContext(), camera);
+            } else
+            {
+                autoFocusManager = null;
+            }
         } catch (Exception e)
         {
             Log.d("DBG", "Error starting camera preview: " + e.getMessage());
@@ -487,25 +496,6 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             } catch (Throwable ignored)
             {
             }
-        }
-    }
-
-    public void onAutoFocus(boolean success, final Camera camera)
-    {
-        if (autoFocusCallback != null)
-        {
-            autoFocusHandler.postDelayed(new Runnable()
-            {
-                public void run()
-                {
-                    try
-                    {
-                        camera.autoFocus(autoFocusCallback);
-                    } catch (Throwable ignored)
-                    {
-                    }
-                }
-            }, AUTO_FOCUS_INTERVAL_MS);
         }
     }
 
@@ -663,8 +653,6 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         if (focusMode != null)
         {
             parameters.setFocusMode(focusMode);
-            boolean af = useAutoFocus && FOCUS_MODES_CALLING_AF.contains(focusMode);
-            autoFocusCallback = af ? this : null;
         }
     }
 
