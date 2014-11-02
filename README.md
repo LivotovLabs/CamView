@@ -16,10 +16,30 @@ CAMView v1.0 beta-5
 Status
 ======
 
- The component is now fully functional and is around 1.0 release. 
+ Current stable version: 1.0.0
  Please feel free to share your comments and suggestions, report any bugs or submit your pull requests 
  (which is even better :)
 
+
+Get It
+======
+
+- Maven repository: http://maven.livotovlabs.pro/content/groups/public
+- Group: eu.livotov.labs
+- Artifact ID: camview
+
+```groovy
+
+repositories {
+    ...
+    maven { url 'http://maven.livotovlabs.pro/content/groups/public' }
+    ...
+}
+
+
+compile group: "eu.livotov.labs", name: "camview", version: "1.0.0", ext: "aar"
+
+```
 
 Usage
 =====
