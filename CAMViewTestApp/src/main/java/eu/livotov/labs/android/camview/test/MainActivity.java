@@ -1,13 +1,15 @@
 package eu.livotov.labs.android.camview.test;
 
 import android.app.Activity;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 import eu.livotov.labs.android.camview.CAMView;
 
 
-public class MainActivity extends Activity
+public class MainActivity extends Activity implements CAMView.CAMViewListener
 {
 
     private CAMView camera;
@@ -17,7 +19,8 @@ public class MainActivity extends Activity
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        camera = (CAMView)findViewById(R.id.camview);
+        camera = (CAMView) findViewById(R.id.camview);
+        camera.setCamViewListener(this);
     }
 
     protected void onResume()
@@ -52,5 +55,23 @@ public class MainActivity extends Activity
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onCameraReady(Camera camera)
+    {
+        Toast.makeText(this, getString(R.string.camera_status_ready), Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onCameraError(int i, Camera camera)
+    {
+        Toast.makeText(this, getString(R.string.camera_status_err, i), Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onPreviewData(byte[] data, int previewFormat, Camera.Size size)
+    {
+
     }
 }

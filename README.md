@@ -16,7 +16,9 @@ CAMView v1.0 beta-5
 Status
 ======
 
- Current stable version: 1.0.0
+- Current stable version: 1.0.0
+- Current development version: 1.0.2-SNAPSHOT
+
  Please feel free to share your comments and suggestions, report any bugs or submit your pull requests 
  (which is even better :)
 

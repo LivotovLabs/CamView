@@ -14,12 +14,13 @@ import android.widget.FrameLayout;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * (c) Livotov Labs Ltd. 2012
  * Date: 06/12/2013
  */
-public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Camera.PreviewCallback
+public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Camera.PreviewCallback, Camera.ErrorCallback
 {
 
     private SurfaceHolder surfaceHolder;
@@ -31,10 +32,11 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     private AutoFocusManager autoFocusManager;
 
     private CAMViewListener camViewListener;
+    private AtomicBoolean cameraInitialized = new AtomicBoolean(false);
 
     private transient boolean live = false;
     private int lastUsedCameraId = -1;
-
+    private Camera.ErrorCallback errorCallback;
 
     public CAMView(final Context context)
     {
@@ -114,6 +116,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         if (camera != null)
         {
             camera.setPreviewCallback(null);
+            camera.setErrorCallback(null);
             camera.release();
             camera = null;
         }
@@ -134,7 +137,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         this.cameraId = cameraId;
         this.camera = setupCamera(cameraId);
         previewCallback = this;
-
+        errorCallback = this;
+        cameraInitialized.set(false);
 
         try
         {
@@ -239,6 +243,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             p.setRotation(outputResult);
             camera.setPreviewDisplay(surfaceHolder);
             camera.setPreviewCallback(previewCallback);
+            camera.setErrorCallback(errorCallback);
 
             Camera.Size closestSize = findClosestPreviewSize(p.getSupportedPreviewSizes());
 
@@ -406,6 +411,11 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     {
         if (camViewListener != null)
         {
+            if (!cameraInitialized.getAndSet(true))
+            {
+                camViewListener.onCameraReady(camera);
+            }
+
             try
             {
                 camViewListener.onPreviewData(data, previewFormat, camera.getParameters().getPreviewSize());
@@ -617,9 +627,20 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         return camera;
     }
 
+    @Override
+    public void onError(int i, Camera camera)
+    {
+        if (camViewListener!=null)
+        {
+            camViewListener.onCameraError(i, camera);
+        }
+    }
+
     public interface CAMViewListener
     {
 
+        void onCameraReady(Camera camera);
+        void onCameraError(int i, Camera camera);
         void onPreviewData(byte[] data, int previewFormat, Camera.Size size);
     }
 }

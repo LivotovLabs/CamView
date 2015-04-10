@@ -4,5 +4,8 @@
     <string name="app_name">CAMView Test App</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="camera_status_ready">Camera Initialized...</string>
+    <string name="camera_status_err">Camera Error: %s</string>
+    <string name="camera_status_stopped">Camera Stopped...</string>
 
 </resources>
