@@ -47,7 +47,7 @@ Usage
 =====
           
  Usage is very straightforward - just add this component to your layout.xml (or programmatically at runtiume)
- and invoke the start() method when you need to start displaying the live stream from camera:
+ and invoke the start() method when you need to start displaying the live stream from the camera:
 
 
  1. Add to layout
