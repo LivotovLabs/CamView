@@ -1,4 +1,4 @@
-CAMView v1.0.0
+CAMView
 =======
 
  Android view component to display the live picture from device camera and optionally provide developer with the 
