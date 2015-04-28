@@ -97,7 +97,12 @@ Usage
  cameraView.start(allCams.get(somePosition).getCameraId());
  ```
 
-
+ 3.2 Control flash, if required
+ 
+ ```
+    cameraView.switchFlash(boolean onoff);
+ ```
+ 
  4. If you need to process live data from the camera during the live streaming process (for instance, 
     for a barcode recognition) - just enable this and use the listener callback:
 
