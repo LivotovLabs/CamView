@@ -8,7 +8,11 @@ import android.hardware.Camera;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.*;
+import android.view.Gravity;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 
 import java.util.ArrayList;
@@ -64,6 +68,38 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         this.camViewListener = camViewListener;
     }
 
+    public void switchFlash(boolean on)
+    {
+        final Camera camera = getCamera();
+        final Camera.Parameters parameters = camera.getParameters();
+
+        if (live && camera != null)
+        {
+            if (parameters.getSupportedFlashModes().size()>0)
+            {
+                if (on)
+                {
+                    if (!parameters.getFlashMode().equals(Camera.Parameters.FLASH_MODE_TORCH))
+                    {
+                        parameters.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+                    }
+                }
+                else
+                {
+                    if (!parameters.getFlashMode().equals(Camera.Parameters.FLASH_MODE_OFF))
+                    {
+                        parameters.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+                    }
+                }
+
+                camera.setParameters(parameters);
+            }
+        } else
+        {
+            throw new IllegalAccessError("switchFlash may only be used in a live mode. Please turn on camera with the start() method before using flash.");
+        }
+    }
+
     @TargetApi(9)
     public static int getNumberOfCameras()
     {
@@ -110,6 +146,10 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public synchronized void stop()
     {
+        if (live)
+        {
+            switchFlash(false);
+        }
 
         live = false;
 
@@ -145,7 +185,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             Camera.Parameters parameters = getMainCameraParameters();
             parameters.setPreviewFormat(previewFormat);
             camera.setParameters(parameters);
-        } catch (Throwable err)
+        }
+        catch (Throwable err)
         {
             Log.e(getClass().getSimpleName(), "Master parameters set was rejected by a camera, trying failsafe one.", err);
 
@@ -154,7 +195,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 Camera.Parameters parameters = getFailsafeCameraParameters();
                 parameters.setPreviewFormat(previewFormat);
                 camera.setParameters(parameters);
-            } catch (Throwable err2)
+            }
+            catch (Throwable err2)
             {
                 Log.e(getClass().getSimpleName(), "Failsafe parameters set was rejected by a camera, trying to use it as is.", err2);
             }
@@ -179,7 +221,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             {
                 // deprecated setting, but required on Android versions prior to 3.0
                 surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-            } catch (Throwable err)
+            }
+            catch (Throwable err)
             {
                 Log.e(getClass().getSimpleName(), "Failed to set surface holder to SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS, using it as is.", err);
             }
@@ -194,7 +237,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         try
         {
             camera.setPreviewDisplay(holder);
-        } catch (Throwable e)
+        }
+        catch (Throwable e)
         {
             Log.d("DBG", "Error setting camera preview: " + e.getMessage());
         }
@@ -234,7 +278,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 try
                 {
                     camera.setDisplayOrientation(result);
-                } catch (Throwable err)
+                }
+                catch (Throwable err)
                 {
                     // very bad devices goes here
                 }
@@ -268,7 +313,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             camera.setParameters(p);
             startPreview();
 
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             Log.d("DBG", "Error starting camera preview: " + e.getMessage());
         }
@@ -287,7 +333,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             try
             {
                 camera.stopPreview();
-            } catch (Exception ignored)
+            }
+            catch (Exception ignored)
             {
             }
         }
@@ -337,11 +384,13 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 result = (info.orientation + degrees) % 360;
                 outputResult = (info.orientation + degrees) % 360;
                 result = (360 - result) % 360;  // compensate the mirror
-            } else
+            }
+            else
             {  // back-facing
                 result = (info.orientation - degrees + 360) % 360;
             }
-        } catch (Throwable err)
+        }
+        catch (Throwable err)
         {
             // very bad devices goes here
         }
@@ -392,13 +441,15 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                                 if (lastUsedCameraId >= 0)
                                 {
                                     start(lastUsedCameraId);
-                                } else
+                                }
+                                else
                                 {
                                     start();
                                 }
-                            } catch (Throwable err)
+                            }
+                            catch (Throwable err)
                             {
-                                Log.e(getClass().getSimpleName(),"Failed to re-open the camera after configuration change: " + err.getMessage(),err);
+                                Log.e(getClass().getSimpleName(), "Failed to re-open the camera after configuration change: " + err.getMessage(), err);
                             }
                         }
                     }, 100);
@@ -419,7 +470,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             try
             {
                 camViewListener.onPreviewData(data, previewFormat, camera.getParameters().getPreviewSize());
-            } catch (Throwable ignored)
+            }
+            catch (Throwable ignored)
             {
             }
         }
@@ -434,7 +486,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         if (Build.VERSION.SDK_INT < 9)
         {
             return 0;
-        } else
+        }
+        else
         {
             return findCamera();
         }
@@ -472,11 +525,13 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             if (Build.VERSION.SDK_INT < 9)
             {
                 return Camera.open();
-            } else
+            }
+            else
             {
                 return openCamera(cameraId);
             }
-        } catch (Throwable e)
+        }
+        catch (Throwable e)
         {
             throw new RuntimeException("Failed to open a camera with id " + cameraId + ": " + e.getMessage(), e);
         }
@@ -530,7 +585,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 {
                     parameters.setExposureCompensation(0);
                 }
-            } catch (Throwable ignored)
+            }
+            catch (Throwable ignored)
             {
             }
         }
@@ -549,12 +605,10 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 )
         {
             return findSettableValue(focusModes, Camera.Parameters.FOCUS_MODE_AUTO);
-        } else
+        }
+        else
         {
-            return findSettableValue(focusModes,
-                                     Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE,
-                                     Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO,
-                                     Camera.Parameters.FOCUS_MODE_AUTO);
+            return findSettableValue(focusModes, Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE, Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO, Camera.Parameters.FOCUS_MODE_AUTO);
         }
     }
 
@@ -574,16 +628,15 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         if (Build.VERSION.SDK_INT >= 14)
         {
             focusMode = getFocusMode14(focusModes);
-        } else
+        }
+        else
         {
             focusMode = getFocusMode9(focusModes);
         }
 
         if (null == focusMode)
         {
-            focusMode = findSettableValue(focusModes,
-                                          Camera.Parameters.FOCUS_MODE_MACRO,
-                                          Camera.Parameters.FOCUS_MODE_EDOF);
+            focusMode = findSettableValue(focusModes, Camera.Parameters.FOCUS_MODE_MACRO, Camera.Parameters.FOCUS_MODE_EDOF);
         }
 
         if (null != focusMode)
@@ -601,7 +654,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             {
                 parameters.setAutoExposureLock(false);
             }
-        } catch (Throwable ignored)
+        }
+        catch (Throwable ignored)
         {
         }
     }
@@ -630,7 +684,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     @Override
     public void onError(int i, Camera camera)
     {
-        if (camViewListener!=null)
+        if (camViewListener != null)
         {
             camViewListener.onCameraError(i, camera);
         }
@@ -640,7 +694,9 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     {
 
         void onCameraReady(Camera camera);
+
         void onCameraError(int i, Camera camera);
+
         void onPreviewData(byte[] data, int previewFormat, Camera.Size size);
     }
 }

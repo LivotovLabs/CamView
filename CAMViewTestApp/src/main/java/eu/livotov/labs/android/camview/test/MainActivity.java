@@ -5,6 +5,7 @@ import android.hardware.Camera;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 import eu.livotov.labs.android.camview.CAMView;
 
@@ -13,6 +14,7 @@ public class MainActivity extends Activity implements CAMView.CAMViewListener
 {
 
     private CAMView camera;
+    private boolean flashStatus;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -35,6 +37,15 @@ public class MainActivity extends Activity implements CAMView.CAMViewListener
         super.onPause();
     }
 
+    public void toggleFlash(View view)
+    {
+        if (camera.isStreaming())
+        {
+            flashStatus = !flashStatus;
+            camera.switchFlash(flashStatus);
+        }
+    }
+    
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
     {

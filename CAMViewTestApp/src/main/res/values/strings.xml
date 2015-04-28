@@ -7,5 +7,6 @@
     <string name="camera_status_ready">Camera Initialized...</string>
     <string name="camera_status_err">Camera Error: %s</string>
     <string name="camera_status_stopped">Camera Stopped...</string>
+    <string name="toogle_flash">Toggle Flash</string>
 
 </resources>
