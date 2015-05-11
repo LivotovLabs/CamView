@@ -148,12 +148,15 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public synchronized void stop()
     {
-        if (cameraIsLive.get() && !cameraIsStopping.compareAndSet(false, true))
+        if (!cameraIsStopping.compareAndSet(false, true))
         {
             return;
         }
 
-        switchFlash(false);
+        if (cameraIsLive.get())
+        {
+            switchFlash(false);
+        }
 
         new Thread(new Runnable()
         {
