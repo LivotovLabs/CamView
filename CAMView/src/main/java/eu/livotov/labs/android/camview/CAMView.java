@@ -244,15 +244,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             public void onCameraOpened(Camera camera)
             {
                 attachToCamera(camera);
-
-                cameraIsLive.set(true);
                 cameraIsStarting.set(false);
                 cameraIsStopping.set(false);
-
-                if (camViewListener!=null)
-                {
-                    camViewListener.onCameraReady(camera);
-                }
             }
 
             @Override
@@ -599,6 +592,14 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public void onPreviewFrame(byte[] data, Camera camera)
     {
+        if (cameraIsLive.compareAndSet(false,true))
+        {
+            if (camViewListener != null)
+            {
+                camViewListener.onCameraReady(camera);
+            }
+        }
+
         if (!cameraIsStopping.get() && camViewListener != null)
         {
             try
