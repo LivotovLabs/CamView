@@ -16,8 +16,8 @@ CAMView
 Status
 ======
 
-- Current stable version: 1.0.2
-- Current development version: 1.0.3-SNAPSHOT
+- Current stable version: 1.0.3
+- Current development version: 1.0.4-SNAPSHOT
 
  Please feel free to share your comments and suggestions, report any bugs or submit your pull requests 
  (which is even better :)
@@ -39,7 +39,7 @@ repositories {
 }
 
 
-compile group: "eu.livotov.labs", name: "camview", version: "1.0.2", ext: "aar"
+compile group: "eu.livotov.labs", name: "camview", version: "1.0.3", ext: "aar"
 
 ```
 
