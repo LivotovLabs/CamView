@@ -23,18 +23,14 @@ public class MainActivity extends Activity implements CAMView.CAMViewListener
         setContentView(R.layout.activity_main);
         camera = (CAMView) findViewById(R.id.camview);
         camera.setCamViewListener(this);
-    }
-
-    protected void onResume()
-    {
-        super.onResume();
         camera.start();
     }
 
-    protected void onPause()
+    @Override
+    protected void onDestroy()
     {
         camera.stop();
-        super.onPause();
+        super.onDestroy();
     }
 
     public void toggleFlash(View view)
@@ -75,6 +71,12 @@ public class MainActivity extends Activity implements CAMView.CAMViewListener
     }
 
     @Override
+    public void onCameraStopped()
+    {
+
+    }
+
+    @Override
     public void onCameraError(int i, Camera camera)
     {
         Toast.makeText(this, getString(R.string.camera_status_err, i), Toast.LENGTH_LONG).show();
@@ -84,6 +86,7 @@ public class MainActivity extends Activity implements CAMView.CAMViewListener
     public void onCameraOpenError(Throwable err)
     {
         Toast.makeText(this, getString(R.string.camera_open_err, err.getMessage()), Toast.LENGTH_LONG).show();
+        err.printStackTrace();
     }
 
     @Override

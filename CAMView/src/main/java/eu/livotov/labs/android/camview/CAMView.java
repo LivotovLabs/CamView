@@ -39,6 +39,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     private CAMViewListener camViewListener;
     private AtomicBoolean cameraIsLive = new AtomicBoolean(false);
     private AtomicBoolean cameraIsStopping = new AtomicBoolean(false);
+    private AtomicBoolean cameraIsStarting = new AtomicBoolean(false);
 
     private int lastUsedCameraId = -1;
     private Camera.ErrorCallback errorCallback;
@@ -148,6 +149,11 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public synchronized void stop()
     {
+        if (cameraIsStarting.get())
+        {
+            throw new RuntimeException("Cannot stop the camera while it is being started. Wait till start process completes, then stop it.");
+        }
+
         if (!cameraIsStopping.compareAndSet(false, true))
         {
             return;
@@ -157,6 +163,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         {
             switchFlash(false);
         }
+
+        final Handler uiHandler = new Handler();
 
         new Thread(new Runnable()
         {
@@ -184,6 +192,11 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 {
                     cameraIsLive.set(false);
                     cameraIsStopping.set(false);
+
+                    if (camViewListener!=null)
+                    {
+                        camViewListener.onCameraStopped();
+                    }
                 }
             }
         });
@@ -196,7 +209,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public synchronized void start(final int cameraId)
     {
-        if (!cameraIsLive.compareAndSet(false, true))
+        if (!cameraIsStarting.compareAndSet(false, true))
         {
             return;
         }
@@ -209,12 +222,24 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             public void onCameraOpened(Camera camera)
             {
                 attachToCamera(camera);
+
+                cameraIsLive.set(true);
+                cameraIsStarting.set(false);
+                cameraIsStopping.set(false);
+
+                if (camViewListener!=null)
+                {
+                    camViewListener.onCameraReady(camera);
+                }
             }
 
             @Override
             public void onCameraOpenError(Throwable error)
             {
                 cameraIsLive.set(false);
+                cameraIsStarting.set(false);
+                cameraIsStopping.set(false);
+
                 if (camViewListener!=null)
                 {
                     camViewListener.onCameraOpenError(error);
@@ -279,11 +304,6 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         }
 
         lastUsedCameraId = cameraId;
-
-        if (camViewListener!=null)
-        {
-            camViewListener.onCameraReady(camera);
-        }
     }
 
     public void surfaceCreated(SurfaceHolder holder)
@@ -479,37 +499,71 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     {
         super.onConfigurationChanged(newConfig);
 
-        if (cameraIsLive.get() && !cameraIsStopping.get())
+        if (cameraIsLive.get() && !cameraIsStopping.get() && !cameraIsStarting.get())
         {
-            postDelayed(new Runnable()
-            {
-                public void run()
-                {
-                    stop();
-                    postDelayed(new Runnable()
-                    {
-                        public void run()
-                        {
-                            try
-                            {
-                                if (lastUsedCameraId >= 0)
-                                {
-                                    start(lastUsedCameraId);
-                                }
-                                else
-                                {
-                                    start();
-                                }
-                            }
-                            catch (Throwable err)
-                            {
-                                Log.e(getClass().getSimpleName(), "Failed to re-open the camera after configuration change: " + err.getMessage(), err);
-                            }
-                        }
-                    }, 100);
-                }
-            }, 50);
+            restartCameraOnConfigurationChanged();
         }
+    }
+
+    private void restartCameraOnConfigurationChanged()
+    {
+        if (cameraIsLive.get())
+        {
+            switchFlash(false);
+        }
+
+        final Handler uiHandler = new Handler();
+
+        new Thread(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                try
+                {
+                    if (camera != null)
+                    {
+                        camera.setPreviewCallback(null);
+                        camera.setErrorCallback(null);
+                        camera.release();
+                        camera = null;
+                    }
+
+                    if (surfaceHolder != null)
+                    {
+                        surfaceHolder.removeCallback(CAMView.this);
+                    }
+                } catch (Throwable err)
+                {
+                    // ignored
+                } finally
+                {
+                    cameraIsLive.set(false);
+                    cameraIsStopping.set(false);
+
+                    if (camViewListener!=null)
+                    {
+                        camViewListener.onCameraStopped();
+                    }
+
+                    try
+                    {
+                        if (lastUsedCameraId >= 0)
+                        {
+                            start(lastUsedCameraId);
+                        }
+                        else
+                        {
+                            start();
+                        }
+                    }
+                    catch (Throwable err)
+                    {
+                        Log.e(getClass().getSimpleName(), "Failed to re-open the camera after configuration change: " + err.getMessage(), err);
+                    }
+                }
+            }
+        });
     }
 
     public void onPreviewFrame(byte[] data, Camera camera)
@@ -772,6 +826,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     {
 
         void onCameraReady(Camera camera);
+
+        void onCameraStopped();
 
         void onCameraError(int i, Camera camera);
 
