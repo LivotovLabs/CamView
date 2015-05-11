@@ -177,6 +177,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                     {
                         camera.setPreviewCallback(null);
                         camera.setErrorCallback(null);
+                        camera.stopPreview();
                         camera.release();
                         camera = null;
                     }
@@ -187,28 +188,49 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                     }
                 } catch (Throwable err)
                 {
-                    // ignored
+                    Log.e(CAMView.class.getSimpleName(),err.getMessage(),err);
                 } finally
                 {
                     cameraIsLive.set(false);
                     cameraIsStopping.set(false);
+                    cameraIsStarting.set(false);
 
                     if (camViewListener!=null)
                     {
-                        camViewListener.onCameraStopped();
+                        uiHandler.post(new Runnable()
+                        {
+                            @Override
+                            public void run()
+                            {
+                                camViewListener.onCameraStopped();
+                            }
+                        });
                     }
                 }
             }
-        });
+        }).start();
     }
 
-    public void start()
+    public synchronized void start()
     {
         start(findDefaultCameraId());
     }
 
     public synchronized void start(final int cameraId)
     {
+        if (cameraIsLive.get())
+        {
+            if (cameraId!=lastUsedCameraId)
+            {
+                throw new RuntimeException("You cannot start a new camera while another camera is still running. Please stop your current camera first.");
+            }
+        }
+
+        if (cameraIsStopping.get())
+        {
+            throw new RuntimeException("Camera is stopping at the moment. Please wait until stop process is complete, then start it back.");
+        }
+
         if (!cameraIsStarting.compareAndSet(false, true))
         {
             return;
@@ -525,6 +547,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                     {
                         camera.setPreviewCallback(null);
                         camera.setErrorCallback(null);
+                        camera.stopPreview();
                         camera.release();
                         camera = null;
                     }
@@ -540,30 +563,38 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 {
                     cameraIsLive.set(false);
                     cameraIsStopping.set(false);
+                    cameraIsStarting.set(false);
 
-                    if (camViewListener!=null)
+                    uiHandler.post(new Runnable()
                     {
-                        camViewListener.onCameraStopped();
-                    }
+                        @Override
+                        public void run()
+                        {
+                            if (camViewListener!=null)
+                            {
+                                camViewListener.onCameraStopped();
+                            }
 
-                    try
-                    {
-                        if (lastUsedCameraId >= 0)
-                        {
-                            start(lastUsedCameraId);
+                            try
+                            {
+                                if (lastUsedCameraId >= 0)
+                                {
+                                    start(lastUsedCameraId);
+                                }
+                                else
+                                {
+                                    start();
+                                }
+                            }
+                            catch (Throwable err)
+                            {
+                                Log.e(getClass().getSimpleName(), "Failed to re-open the camera after configuration change: " + err.getMessage(), err);
+                            }
                         }
-                        else
-                        {
-                            start();
-                        }
-                    }
-                    catch (Throwable err)
-                    {
-                        Log.e(getClass().getSimpleName(), "Failed to re-open the camera after configuration change: " + err.getMessage(), err);
-                    }
+                    });
                 }
             }
-        });
+        }).start();
     }
 
     public void onPreviewFrame(byte[] data, Camera camera)
@@ -630,9 +661,35 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             @Override
             public void run()
             {
-                try
+                Camera cam = null;
+                int retriesCount = 5;
+                Throwable lastError = null;
+
+                while (cam==null && retriesCount>0)
                 {
-                    final Camera camera = Build.VERSION.SDK_INT < 9 ? Camera.open() : openCamera(cameraId);
+                    try
+                    {
+                        cam = Build.VERSION.SDK_INT < 9 ? Camera.open() : openCamera(cameraId);
+                    }
+                    catch (final Throwable e)
+                    {
+                        lastError = e;
+                        retriesCount--;
+
+                        try
+                        {
+                            Thread.sleep(1000);
+                        }
+                        catch (InterruptedException itre)
+                        {
+                        }
+                    }
+                }
+
+                if (cam!=null)
+                {
+                    camera = cam;
+
                     uiHandler.post(new Runnable()
                     {
                         @Override
@@ -641,15 +698,15 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                             callback.onCameraOpened(camera);
                         }
                     });
-                }
-                catch (final Throwable e)
+                } else
                 {
+                    final Throwable lastOpenError = lastError;
                     uiHandler.post(new Runnable()
                     {
                         @Override
                         public void run()
                         {
-                            callback.onCameraOpenError(e);
+                            callback.onCameraOpenError(lastOpenError);
                         }
                     });
                 }
