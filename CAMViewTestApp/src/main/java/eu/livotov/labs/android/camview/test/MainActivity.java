@@ -90,8 +90,8 @@ public class MainActivity extends Activity implements CAMView.CAMViewListener
     }
 
     @Override
-    public void onPreviewData(byte[] data, int previewFormat, Camera.Size size)
+    public boolean onPreviewData(byte[] data, int previewFormat, Camera.Size size)
     {
-
+        return false;
     }
 }

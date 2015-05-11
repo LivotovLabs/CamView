@@ -43,6 +43,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     private int lastUsedCameraId = -1;
     private Camera.ErrorCallback errorCallback;
+    private byte[] previewBuffer;
 
     public CAMView(final Context context)
     {
@@ -175,7 +176,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 {
                     if (camera != null)
                     {
-                        camera.setPreviewCallback(null);
+                        camera.setPreviewCallbackWithBuffer(null);
                         camera.setErrorCallback(null);
                         camera.stopPreview();
                         camera.release();
@@ -304,6 +305,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
         surfaceHolder = surface.getHolder();
         surfaceHolder.addCallback(this);
+        enablePreviewGrabbing();
 
         if (Build.VERSION.SDK_INT < 11)
         {
@@ -319,6 +321,32 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         }
 
         lastUsedCameraId = cameraId;
+    }
+
+    public void enablePreviewGrabbing()
+    {
+        camera.setPreviewCallbackWithBuffer(previewCallback);
+
+        final int imageFormat = camera.getParameters().getPreviewFormat();
+        final Camera.Size size = camera.getParameters().getPreviewSize();
+
+        if (imageFormat != ImageFormat.NV21) {
+            throw new UnsupportedOperationException(String.format("Bad reported image format, wanted NV21 (%s) but got %s" ,ImageFormat.NV21 ,imageFormat));
+        }
+
+        final int bufferSize = size.width * size.height * ImageFormat.getBitsPerPixel(imageFormat) / 8;
+
+        if (previewBuffer==null || previewBuffer.length!=bufferSize)
+        {
+            previewBuffer = new byte[bufferSize];
+        }
+
+        camera.addCallbackBuffer(previewBuffer);
+    }
+
+    public void disablePreviewGrabbing()
+    {
+        camera.setPreviewCallbackWithBuffer(null);
     }
 
     public void surfaceCreated(SurfaceHolder holder)
@@ -376,8 +404,6 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
             p.setRotation(outputResult);
             camera.setPreviewDisplay(surfaceHolder);
-            camera.setPreviewCallback(previewCallback);
-            camera.setErrorCallback(errorCallback);
 
             Camera.Size closestSize = findClosestPreviewSize(p.getSupportedPreviewSizes());
 
@@ -538,7 +564,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 {
                     if (camera != null)
                     {
-                        camera.setPreviewCallback(null);
+                        camera.setPreviewCallbackWithBuffer(null);
                         camera.setErrorCallback(null);
                         camera.stopPreview();
                         camera.release();
@@ -604,10 +630,14 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         {
             try
             {
-                camViewListener.onPreviewData(data, previewFormat, camera.getParameters().getPreviewSize());
+                if (camViewListener.onPreviewData(data, previewFormat, camera.getParameters().getPreviewSize()))
+                {
+                    camera.addCallbackBuffer(previewBuffer);
+                }
             }
             catch (Throwable ignored)
             {
+                disablePreviewGrabbing();
             }
         }
     }
@@ -891,6 +921,6 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
         void onCameraOpenError(Throwable err);
 
-        void onPreviewData(byte[] data, int previewFormat, Camera.Size size);
+        boolean onPreviewData(byte[] data, int previewFormat, Camera.Size size);
     }
 }
