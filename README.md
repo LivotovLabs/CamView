@@ -17,7 +17,7 @@ Status
 ======
 
 - Current stable version: 1.0.3
-- Current development version: 1.0.4-SNAPSHOT
+- Current development version: 1.1.0-SNAPSHOT
 
  Please feel free to share your comments and suggestions, report any bugs or submit your pull requests 
  (which is even better :)

@@ -71,11 +71,11 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public void switchFlash(boolean on)
     {
-        final Camera camera = getCamera();
-        final Camera.Parameters parameters = camera.getParameters();
-
         if (cameraIsLive.get() && camera != null)
         {
+            final Camera camera = getCamera();
+            final Camera.Parameters parameters = camera.getParameters();
+
             if (parameters != null && parameters.getSupportedFlashModes() != null && parameters.getFlashMode() != null && parameters.getSupportedFlashModes().size() > 0)
             {
                 if (on)
