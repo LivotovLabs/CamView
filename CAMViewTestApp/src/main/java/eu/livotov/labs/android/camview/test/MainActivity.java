@@ -81,6 +81,12 @@ public class MainActivity extends Activity implements CAMView.CAMViewListener
     }
 
     @Override
+    public void onCameraOpenError(Throwable err)
+    {
+        Toast.makeText(this, getString(R.string.camera_open_err, err.getMessage()), Toast.LENGTH_LONG).show();
+    }
+
+    @Override
     public void onPreviewData(byte[] data, int previewFormat, Camera.Size size)
     {
 

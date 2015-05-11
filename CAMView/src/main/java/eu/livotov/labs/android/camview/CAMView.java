@@ -6,6 +6,7 @@ import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.os.Build;
+import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
@@ -36,9 +37,9 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     private AutoFocusManager autoFocusManager;
 
     private CAMViewListener camViewListener;
-    private AtomicBoolean cameraInitialized = new AtomicBoolean(false);
+    private AtomicBoolean cameraIsLive = new AtomicBoolean(false);
+    private AtomicBoolean cameraIsStopping = new AtomicBoolean(false);
 
-    private transient boolean live = false;
     private int lastUsedCameraId = -1;
     private Camera.ErrorCallback errorCallback;
 
@@ -73,7 +74,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         final Camera camera = getCamera();
         final Camera.Parameters parameters = camera.getParameters();
 
-        if (live && camera != null)
+        if (cameraIsLive.get() && camera != null)
         {
             if (parameters != null && parameters.getSupportedFlashModes() != null && parameters.getFlashMode() != null && parameters.getSupportedFlashModes().size() > 0)
             {
@@ -147,25 +148,42 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public synchronized void stop()
     {
-        if (live)
+        if (cameraIsLive.get() && !cameraIsStopping.compareAndSet(false, true))
         {
-            switchFlash(false);
+            return;
         }
 
-        live = false;
+        switchFlash(false);
 
-        if (camera != null)
+        new Thread(new Runnable()
         {
-            camera.setPreviewCallback(null);
-            camera.setErrorCallback(null);
-            camera.release();
-            camera = null;
-        }
+            @Override
+            public void run()
+            {
+                try
+                {
+                    if (camera != null)
+                    {
+                        camera.setPreviewCallback(null);
+                        camera.setErrorCallback(null);
+                        camera.release();
+                        camera = null;
+                    }
 
-        if (surfaceHolder != null)
-        {
-            surfaceHolder.removeCallback(this);
-        }
+                    if (surfaceHolder != null)
+                    {
+                        surfaceHolder.removeCallback(CAMView.this);
+                    }
+                } catch (Throwable err)
+                {
+                    // ignored
+                } finally
+                {
+                    cameraIsLive.set(false);
+                    cameraIsStopping.set(false);
+                }
+            }
+        });
     }
 
     public void start()
@@ -175,11 +193,39 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public synchronized void start(final int cameraId)
     {
+        if (!cameraIsLive.compareAndSet(false, true))
+        {
+            return;
+        }
+
         this.cameraId = cameraId;
-        this.camera = setupCamera(cameraId);
+
+        setupCamera(cameraId, new CameraOpenedCallback()
+        {
+            @Override
+            public void onCameraOpened(Camera camera)
+            {
+                attachToCamera(camera);
+            }
+
+            @Override
+            public void onCameraOpenError(Throwable error)
+            {
+                cameraIsLive.set(false);
+                if (camViewListener!=null)
+                {
+                    camViewListener.onCameraOpenError(error);
+                }
+            }
+        });
+    }
+
+    private void attachToCamera(Camera cam)
+    {
         previewCallback = this;
         errorCallback = this;
-        cameraInitialized.set(false);
+
+        this.camera = cam;
 
         try
         {
@@ -230,7 +276,11 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         }
 
         lastUsedCameraId = cameraId;
-        live = true;
+
+        if (camViewListener!=null)
+        {
+            camViewListener.onCameraReady(camera);
+        }
     }
 
     public void surfaceCreated(SurfaceHolder holder)
@@ -426,7 +476,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     {
         super.onConfigurationChanged(newConfig);
 
-        if (live)
+        if (cameraIsLive.get() && !cameraIsStopping.get())
         {
             postDelayed(new Runnable()
             {
@@ -461,13 +511,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public void onPreviewFrame(byte[] data, Camera camera)
     {
-        if (camViewListener != null)
+        if (!cameraIsStopping.get() && camViewListener != null)
         {
-            if (!cameraInitialized.getAndSet(true))
-            {
-                camViewListener.onCameraReady(camera);
-            }
-
             try
             {
                 camViewListener.onPreviewData(data, previewFormat, camera.getParameters().getPreviewSize());
@@ -519,23 +564,40 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         throw new RuntimeException("Did not find camera on this device");
     }
 
-    protected Camera setupCamera(final int cameraId)
+    protected void setupCamera(final int cameraId, final CameraOpenedCallback callback)
     {
-        try
+        final Handler uiHandler = new Handler();
+
+        new Thread(new Runnable()
         {
-            if (Build.VERSION.SDK_INT < 9)
+            @Override
+            public void run()
             {
-                return Camera.open();
+                try
+                {
+                    final Camera camera = Build.VERSION.SDK_INT < 9 ? Camera.open() : openCamera(cameraId);
+                    uiHandler.post(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            callback.onCameraOpened(camera);
+                        }
+                    });
+                }
+                catch (final Throwable e)
+                {
+                    uiHandler.post(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            callback.onCameraOpenError(e);
+                        }
+                    });
+                }
             }
-            else
-            {
-                return openCamera(cameraId);
-            }
-        }
-        catch (Throwable e)
-        {
-            throw new RuntimeException("Failed to open a camera with id " + cameraId + ": " + e.getMessage(), e);
-        }
+        }).start();
     }
 
     @TargetApi(Build.VERSION_CODES.GINGERBREAD)
@@ -691,12 +753,26 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         }
     }
 
+    protected interface CameraOpenedCallback
+    {
+        void onCameraOpened(Camera camera);
+
+        void onCameraOpenError(Throwable error);
+    }
+
+    protected interface CameraClosedCallback
+    {
+        void onCameraClosed();
+    }
+
     public interface CAMViewListener
     {
 
         void onCameraReady(Camera camera);
 
         void onCameraError(int i, Camera camera);
+
+        void onCameraOpenError(Throwable err);
 
         void onPreviewData(byte[] data, int previewFormat, Camera.Size size);
     }
