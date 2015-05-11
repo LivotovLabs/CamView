@@ -75,7 +75,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
         if (live && camera != null)
         {
-            if (parameters!=null && parameters.getSupportedFlashModes()!=null && parameters.getSupportedFlashModes().size()>0)
+            if (parameters != null && parameters.getSupportedFlashModes() != null && parameters.getFlashMode() != null && parameters.getSupportedFlashModes().size() > 0)
             {
                 if (on)
                 {
@@ -94,7 +94,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
                 camera.setParameters(parameters);
             }
-        } else
+        }
+        else
         {
             throw new IllegalAccessError("switchFlash may only be used in a live mode. Please turn on camera with the start() method before using flash.");
         }
