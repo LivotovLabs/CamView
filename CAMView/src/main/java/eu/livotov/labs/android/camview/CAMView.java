@@ -305,6 +305,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
         surfaceHolder = surface.getHolder();
         surfaceHolder.addCallback(this);
+
         enablePreviewGrabbing();
 
         if (Build.VERSION.SDK_INT < 11)
@@ -325,7 +326,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public void enablePreviewGrabbing()
     {
-        if (cameraIsLive.get() && !cameraIsStopping.get())
+        if ((cameraIsStarting.get() || cameraIsLive.get()) && !cameraIsStopping.get())
         {
             camera.setPreviewCallbackWithBuffer(previewCallback);
 
