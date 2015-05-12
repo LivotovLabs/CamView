@@ -325,28 +325,35 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public void enablePreviewGrabbing()
     {
-        camera.setPreviewCallbackWithBuffer(previewCallback);
-
-        final int imageFormat = camera.getParameters().getPreviewFormat();
-        final Camera.Size size = camera.getParameters().getPreviewSize();
-
-        if (imageFormat != ImageFormat.NV21) {
-            throw new UnsupportedOperationException(String.format("Bad reported image format, wanted NV21 (%s) but got %s" ,ImageFormat.NV21 ,imageFormat));
-        }
-
-        final int bufferSize = size.width * size.height * ImageFormat.getBitsPerPixel(imageFormat) / 8;
-
-        if (previewBuffer==null || previewBuffer.length!=bufferSize)
+        if (cameraIsLive.get() && !cameraIsStopping.get())
         {
-            previewBuffer = new byte[bufferSize];
-        }
+            camera.setPreviewCallbackWithBuffer(previewCallback);
 
-        camera.addCallbackBuffer(previewBuffer);
+            final int imageFormat = camera.getParameters().getPreviewFormat();
+            final Camera.Size size = camera.getParameters().getPreviewSize();
+
+            if (imageFormat != ImageFormat.NV21)
+            {
+                throw new UnsupportedOperationException(String.format("Bad reported image format, wanted NV21 (%s) but got %s", ImageFormat.NV21, imageFormat));
+            }
+
+            final int bufferSize = size.width * size.height * ImageFormat.getBitsPerPixel(imageFormat) / 8;
+
+            if (previewBuffer == null || previewBuffer.length != bufferSize)
+            {
+                previewBuffer = new byte[bufferSize];
+            }
+
+            camera.addCallbackBuffer(previewBuffer);
+        }
     }
 
     public void disablePreviewGrabbing()
     {
-        camera.setPreviewCallbackWithBuffer(null);
+        if (cameraIsLive.get() && !cameraIsStopping.get())
+        {
+            camera.setPreviewCallbackWithBuffer(null);
+        }
     }
 
     public void surfaceCreated(SurfaceHolder holder)
