@@ -187,16 +187,18 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                     {
                         surfaceHolder.removeCallback(CAMView.this);
                     }
-                } catch (Throwable err)
+                }
+                catch (Throwable err)
                 {
-                    Log.e(CAMView.class.getSimpleName(),err.getMessage(),err);
-                } finally
+                    Log.e(CAMView.class.getSimpleName(), err.getMessage(), err);
+                }
+                finally
                 {
                     cameraIsLive.set(false);
                     cameraIsStopping.set(false);
                     cameraIsStarting.set(false);
 
-                    if (camViewListener!=null)
+                    if (camViewListener != null)
                     {
                         uiHandler.post(new Runnable()
                         {
@@ -221,7 +223,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     {
         if (cameraIsLive.get())
         {
-            if (cameraId!=lastUsedCameraId)
+            if (cameraId != lastUsedCameraId)
             {
                 throw new RuntimeException("You cannot start a new camera while another camera is still running. Please stop your current camera first.");
             }
@@ -256,7 +258,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 cameraIsStarting.set(false);
                 cameraIsStopping.set(false);
 
-                if (camViewListener!=null)
+                if (camViewListener != null)
                 {
                     camViewListener.onCameraOpenError(error);
                 }
@@ -583,10 +585,12 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                     {
                         surfaceHolder.removeCallback(CAMView.this);
                     }
-                } catch (Throwable err)
+                }
+                catch (Throwable err)
                 {
                     // ignored
-                } finally
+                }
+                finally
                 {
                     cameraIsLive.set(false);
                     cameraIsStopping.set(false);
@@ -597,7 +601,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                         @Override
                         public void run()
                         {
-                            if (camViewListener!=null)
+                            if (camViewListener != null)
                             {
                                 camViewListener.onCameraStopped();
                             }
@@ -626,7 +630,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
     public void onPreviewFrame(byte[] data, Camera camera)
     {
-        if (cameraIsLive.compareAndSet(false,true))
+        if (cameraIsLive.compareAndSet(false, true))
         {
             if (camViewListener != null)
             {
@@ -704,7 +708,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 int retriesCount = 5;
                 Throwable lastError = null;
 
-                while (cam==null && retriesCount>0)
+                while (cam == null && retriesCount > 0)
                 {
                     try
                     {
@@ -725,7 +729,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                     }
                 }
 
-                if (cam!=null)
+                if (cam != null)
                 {
                     camera = cam;
 
@@ -737,7 +741,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                             callback.onCameraOpened(camera);
                         }
                     });
-                } else
+                }
+                else
                 {
                     final Throwable lastOpenError = lastError;
                     uiHandler.post(new Runnable()

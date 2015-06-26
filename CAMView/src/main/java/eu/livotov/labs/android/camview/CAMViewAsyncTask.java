@@ -3,7 +3,12 @@ package eu.livotov.labs.android.camview;
 import android.os.Looper;
 import android.os.Message;
 
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -125,25 +130,30 @@ public abstract class CAMViewAsyncTask<Params, Progress, Result>
                         if (!mCancelled.get())
                         {
                             sHandler.dispatchPostExecute(result);
-                        } else
-                        {
-                            sHandler.dispatchCancel(result);
                         }
-                    } catch (Throwable throwable)
-                    {
-                        if (!mCancelled.get())
-                        {
-                            sHandler.dispatchError(result);
-                        } else
+                        else
                         {
                             sHandler.dispatchCancel(result);
                         }
                     }
-                } else
+                    catch (Throwable throwable)
+                    {
+                        if (!mCancelled.get())
+                        {
+                            sHandler.dispatchError(result);
+                        }
+                        else
+                        {
+                            sHandler.dispatchCancel(result);
+                        }
+                    }
+                }
+                else
                 {
                     sHandler.dispatchCancel(result);
                 }
-            } else
+            }
+            else
             {
                 sHandler.dispatchCancel(result);
             }
@@ -279,7 +289,8 @@ public abstract class CAMViewAsyncTask<Params, Progress, Result>
                     try
                     {
                         mLock.wait();
-                    } catch (InterruptedException e)
+                    }
+                    catch (InterruptedException e)
                     {
                         e.printStackTrace();
                     }
@@ -289,7 +300,8 @@ public abstract class CAMViewAsyncTask<Params, Progress, Result>
                     if (delayMillis <= 0)
                     {
                         this.mHandler.sendMessage(message);
-                    } else
+                    }
+                    else
                     {
                         mHandler.sendMessageDelayed(message, delayMillis);
                     }
@@ -307,7 +319,8 @@ public abstract class CAMViewAsyncTask<Params, Progress, Result>
                     try
                     {
                         mLock.wait();
-                    } catch (InterruptedException e)
+                    }
+                    catch (InterruptedException e)
                     {
                         e.printStackTrace();
                     }
@@ -318,7 +331,8 @@ public abstract class CAMViewAsyncTask<Params, Progress, Result>
                     if (delayMillis <= 0)
                     {
                         this.mHandler.post(runnable);
-                    } else
+                    }
+                    else
                     {
                         mHandler.postDelayed(runnable, delayMillis);
                     }

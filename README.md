@@ -16,11 +16,14 @@ CAMView
 Status
 ======
 
-- Current stable version: 1.0.3
-- Current development version: 1.1.0-SNAPSHOT
+- Current stable version: 1.1.0
+- Current development version: 2.0.0-SNAPSHOT
 
  Please feel free to share your comments and suggestions, report any bugs or submit your pull requests 
- (which is even better :)
+ (second is even better :)
+
+Note, 1.x branch is the last one, supports Android 2.x SDK. Branch 2.x will be focused for 4.0+ SDK only, while
+1.x branch will be on maintenance for critical bugs only.
 
 
 Get It
@@ -39,7 +42,7 @@ repositories {
 }
 
 
-compile group: "eu.livotov.labs", name: "camview", version: "1.0.3", ext: "aar"
+compile group: "eu.livotov.labs", name: "camview", version: "1.1.0", ext: "aar"
 
 ```
 

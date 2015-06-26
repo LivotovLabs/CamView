@@ -18,7 +18,6 @@ package eu.livotov.labs.android.camview;
 
 import android.content.Context;
 import android.hardware.Camera;
-import android.os.AsyncTask;
 import android.util.Log;
 
 import java.util.ArrayList;
