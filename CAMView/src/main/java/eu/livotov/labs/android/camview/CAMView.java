@@ -40,6 +40,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     private AtomicBoolean cameraIsLive = new AtomicBoolean(false);
     private AtomicBoolean cameraIsStopping = new AtomicBoolean(false);
     private AtomicBoolean cameraIsStarting = new AtomicBoolean(false);
+    private AtomicBoolean forceStopAfterStart = new AtomicBoolean(false);
 
     private int lastUsedCameraId = -1;
     private Camera.ErrorCallback errorCallback;
@@ -152,7 +153,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     {
         if (cameraIsStarting.get())
         {
-            throw new RuntimeException("Cannot stop the camera while it is being started. Wait till start process completes, then stop it.");
+            forceStopAfterStart.set(true);
+            return;
         }
 
         if (!cameraIsStopping.compareAndSet(false, true))
@@ -227,6 +229,10 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             {
                 throw new RuntimeException("You cannot start a new camera while another camera is still running. Please stop your current camera first.");
             }
+            else
+            {
+                return;
+            }
         }
 
         if (cameraIsStopping.get())
@@ -246,9 +252,15 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             @Override
             public void onCameraOpened(Camera camera)
             {
-                attachToCamera(camera);
-                cameraIsStarting.set(false);
-                cameraIsStopping.set(false);
+                if (forceStopAfterStart.getAndSet(false))
+                {
+                    forceReleaseCamera(camera);
+                }
+                else
+                {
+                    attachToCamera(camera);
+                    cameraIsStopping.set(false);
+                }
             }
 
             @Override
@@ -264,6 +276,21 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 }
             }
         });
+    }
+
+    private void forceReleaseCamera(Camera camera)
+    {
+        camera.release();
+
+        cameraIsStopping.set(false);
+        cameraIsStarting.set(false);
+        cameraIsLive.set(false);
+        CAMView.this.camera = null;
+
+        if (camViewListener != null)
+        {
+            camViewListener.onCameraStopped();
+        }
     }
 
     private void attachToCamera(Camera cam)
@@ -328,10 +355,13 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
             @Override
             public void onPreviewFrame(byte[] data, Camera camera)
             {
-                cameraIsStarting.set(false);
-                cameraIsStopping.set(false);
-                cameraIsLive.set(true);
-                enablePreviewGrabbing();
+                if (forceStopAfterStart.getAndSet(false))
+                {
+                    forceReleaseCamera(camera);
+                } else
+                {
+                    enablePreviewGrabbing();
+                }
             }
         });
     }
@@ -642,6 +672,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     {
         if (cameraIsLive.compareAndSet(false, true))
         {
+            cameraIsStarting.set(false);
+
             if (camViewListener != null)
             {
                 camViewListener.onCameraReady(camera);
