@@ -308,8 +308,6 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         surfaceHolder = surface.getHolder();
         surfaceHolder.addCallback(this);
 
-        enablePreviewGrabbing();
-
         if (Build.VERSION.SDK_INT < 11)
         {
             try
@@ -324,6 +322,18 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
         }
 
         lastUsedCameraId = cameraId;
+
+        camera.setOneShotPreviewCallback(new Camera.PreviewCallback()
+        {
+            @Override
+            public void onPreviewFrame(byte[] data, Camera camera)
+            {
+                cameraIsStarting.set(false);
+                cameraIsStopping.set(false);
+                cameraIsLive.set(true);
+                enablePreviewGrabbing();
+            }
+        });
     }
 
     public void enablePreviewGrabbing()
