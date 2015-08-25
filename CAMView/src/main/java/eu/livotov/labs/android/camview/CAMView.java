@@ -178,9 +178,8 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
                 {
                     if (camera != null)
                     {
-                        camera.setPreviewCallbackWithBuffer(null);
+                        stopPreview();
                         camera.setErrorCallback(null);
-                        camera.stopPreview();
                         camera.release();
                         camera = null;
                     }
@@ -497,6 +496,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
 
             try
             {
+                disablePreviewGrabbing();
                 camera.stopPreview();
             }
             catch (Exception ignored)
@@ -509,6 +509,7 @@ public class CAMView extends FrameLayout implements SurfaceHolder.Callback, Came
     {
         if (null != camera)
         {
+            enablePreviewGrabbing();
             camera.startPreview();
             autoFocusManager = new AutoFocusManager(getContext(), camera);
         }
