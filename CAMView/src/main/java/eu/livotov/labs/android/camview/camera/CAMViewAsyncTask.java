@@ -1,4 +1,4 @@
-package eu.livotov.labs.android.camview;
+package eu.livotov.labs.android.camview.camera;
 
 import android.os.Looper;
 import android.os.Message;

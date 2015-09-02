@@ -8,7 +8,7 @@
     android:paddingBottom="@dimen/activity_vertical_margin"
     tools:context="eu.livotov.labs.android.camview.test.MainActivity">
 
-    <eu.livotov.labs.android.camview.CAMView
+    <eu.livotov.labs.android.camview.CameraLiveView
         android:id="@+id/camview"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package eu.livotov.labs.android.camview;
+package eu.livotov.labs.android.camview.camera.v1;
 
 import android.content.Context;
 import android.hardware.Camera;
@@ -22,6 +22,8 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collection;
+
+import eu.livotov.labs.android.camview.camera.CAMViewAsyncTask;
 
 
 final class AutoFocusManager implements Camera.AutoFocusCallback

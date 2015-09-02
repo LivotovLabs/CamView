@@ -1,19 +1,26 @@
 package eu.livotov.labs.android.camview.test;
 
 import android.app.Activity;
-import android.hardware.Camera;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
-import eu.livotov.labs.android.camview.CAMView;
+
+import java.io.IOException;
+
+import eu.livotov.labs.android.camview.CameraLiveView;
+import eu.livotov.labs.android.camview.camera.CameraManager;
+import eu.livotov.labs.android.camview.camera.CameraController;
+import eu.livotov.labs.android.camview.camera.CameraDelayedOperationResult;
+import eu.livotov.labs.android.camview.camera.CameraInfo;
 
 
-public class MainActivity extends Activity implements CAMView.CAMViewListener
+public class MainActivity extends Activity
 {
 
-    private CAMView camera;
+    private CameraLiveView camera;
+    private CameraController controller;
     private boolean flashStatus;
 
     @Override
@@ -21,27 +28,65 @@ public class MainActivity extends Activity implements CAMView.CAMViewListener
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        camera = (CAMView) findViewById(R.id.camview);
-        camera.setCamViewListener(this);
-        camera.start();
+        camera = (CameraLiveView) findViewById(R.id.camview);
+
+        for (CameraInfo cameraInfo : CameraManager.getAvailableCameras(this))
+        {
+            if (!cameraInfo.isFrontFacingCamera())
+            {
+                controller = CameraManager.open(cameraInfo, new CameraDelayedOperationResult()
+                {
+                    @Override
+                    public void onOperationCompleted()
+                    {
+                        try
+                        {
+                            camera.setCamera(controller);
+                        }
+                        catch (IOException err)
+                        {
+                            Toast.makeText(MainActivity.this, err.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onOperationFailed(Throwable exception, int cameraErrorCode)
+                    {
+                        Toast.makeText(MainActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+                break;
+            }
+        }
+    }
+
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+        camera.resumeDisplay();
+    }
+
+    @Override
+    protected void onPause()
+    {
+        camera.pauseDisplay();
+        super.onPause();
     }
 
     @Override
     protected void onDestroy()
     {
-        camera.stop();
+        controller.close();
         super.onDestroy();
     }
 
     public void toggleFlash(View view)
     {
-        if (camera.isStreaming())
-        {
-            flashStatus = !flashStatus;
-            camera.switchFlash(flashStatus);
-        }
+        flashStatus = !flashStatus;
+        controller.switchFlashlight(flashStatus);
     }
-    
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
     {
@@ -64,34 +109,5 @@ public class MainActivity extends Activity implements CAMView.CAMViewListener
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public void onCameraReady(Camera camera)
-    {
-        Toast.makeText(this, getString(R.string.camera_status_ready), Toast.LENGTH_SHORT).show();
-    }
 
-    @Override
-    public void onCameraStopped()
-    {
-
-    }
-
-    @Override
-    public void onCameraError(int i, Camera camera)
-    {
-        Toast.makeText(this, getString(R.string.camera_status_err, i), Toast.LENGTH_LONG).show();
-    }
-
-    @Override
-    public void onCameraOpenError(Throwable err)
-    {
-        Toast.makeText(this, getString(R.string.camera_open_err, err.getMessage()), Toast.LENGTH_LONG).show();
-        err.printStackTrace();
-    }
-
-    @Override
-    public boolean onPreviewData(byte[] data, int previewFormat, Camera.Size size)
-    {
-        return false;
-    }
 }
