@@ -10,6 +10,7 @@ import android.widget.Toast;
 import java.io.IOException;
 
 import eu.livotov.labs.android.camview.CameraLiveView;
+import eu.livotov.labs.android.camview.ScannerLiveView;
 import eu.livotov.labs.android.camview.camera.CameraManager;
 import eu.livotov.labs.android.camview.camera.CameraController;
 import eu.livotov.labs.android.camview.camera.CameraDelayedOperationResult;
@@ -19,7 +20,7 @@ import eu.livotov.labs.android.camview.camera.CameraInfo;
 public class MainActivity extends Activity
 {
 
-    private CameraLiveView camera;
+    private ScannerLiveView camera;
     private CameraController controller;
     private boolean flashStatus;
 
@@ -28,56 +29,23 @@ public class MainActivity extends Activity
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        camera = (CameraLiveView) findViewById(R.id.camview);
-
-        for (CameraInfo cameraInfo : CameraManager.getAvailableCameras(this))
+        camera = (ScannerLiveView) findViewById(R.id.camview);
+        camera.setScannerViewEventListener(new ScannerLiveView.ScannerViewEventListener()
         {
-            if (!cameraInfo.isFrontFacingCamera())
+            @Override
+            public void onCodeScanned(String data)
             {
-                controller = CameraManager.open(cameraInfo, new CameraDelayedOperationResult()
-                {
-                    @Override
-                    public void onOperationCompleted()
-                    {
-                        try
-                        {
-                            camera.setCamera(controller);
-                        }
-                        catch (IOException err)
-                        {
-                            Toast.makeText(MainActivity.this, err.getMessage(), Toast.LENGTH_SHORT).show();
-                        }
-                    }
-
-                    @Override
-                    public void onOperationFailed(Throwable exception, int cameraErrorCode)
-                    {
-                        Toast.makeText(MainActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                });
-                break;
+                Toast.makeText(MainActivity.this, data, Toast.LENGTH_SHORT).show();
             }
-        }
+        });
+        camera.startScanner();
     }
 
-    @Override
-    protected void onResume()
-    {
-        super.onResume();
-        camera.resumeDisplay();
-    }
-
-    @Override
-    protected void onPause()
-    {
-        camera.pauseDisplay();
-        super.onPause();
-    }
 
     @Override
     protected void onDestroy()
     {
-        controller.close();
+        camera.stopScanner();
         super.onDestroy();
     }
 

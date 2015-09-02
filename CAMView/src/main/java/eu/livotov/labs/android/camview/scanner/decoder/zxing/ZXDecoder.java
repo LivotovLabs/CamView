@@ -38,13 +38,14 @@ public class ZXDecoder implements BarcodeDecoder
     {
         Result result = null;
 
-        BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(new PlanarRotatedYUVLuminanceSource(image, width, height, 0, 0, width, height, true)));
         try
         {
+            BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(new PlanarRotatedYUVLuminanceSource(image, width, height, 0, 0, width, height, true)));
             result = reader.decodeWithState(bitmap);
         }
         catch (Throwable re)
         {
+            re.printStackTrace();
         }
         finally
         {

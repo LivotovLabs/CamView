@@ -58,7 +58,7 @@ public class CameraLiveView extends SurfaceView implements SurfaceHolder.Callbac
         {
             if (this.camera!=null)
             {
-                this.camera.stopPreview();
+                this.camera.close();
                 this.camera = null;
             }
         } else if (!camera.isReady())
@@ -101,7 +101,7 @@ public class CameraLiveView extends SurfaceView implements SurfaceHolder.Callbac
 
             try
             {
-                setCamera(camera);
+                camera.startPreview(this);
             }
             catch (IOException e)
             {
@@ -165,5 +165,10 @@ public class CameraLiveView extends SurfaceView implements SurfaceHolder.Callbac
         {
             camera.stopPreview();
         }
+    }
+
+    public CameraController getController()
+    {
+        return camera;
     }
 }

@@ -32,6 +32,32 @@ public class CameraManager
         }
     }
 
+    public static CameraInfo findFrontCamera(Context ctx)
+    {
+        for (CameraInfo cameraInfo : getAvailableCameras(ctx))
+        {
+            if (cameraInfo.isFrontFacingCamera())
+            {
+                return cameraInfo;
+            }
+        }
+
+        return null;
+    }
+
+    public static CameraInfo findDefaultCamera(Context ctx)
+    {
+        for (CameraInfo cameraInfo : getAvailableCameras(ctx))
+        {
+            if (!cameraInfo.isFrontFacingCamera())
+            {
+                return cameraInfo;
+            }
+        }
+
+        return null;
+    }
+
     public static CameraController open(CameraInfo camera)
     {
         return open(camera, null);
@@ -98,4 +124,6 @@ public class CameraManager
     {
         return new DefaultCameraV1Controller(camera, callback);
     }
+
+
 }

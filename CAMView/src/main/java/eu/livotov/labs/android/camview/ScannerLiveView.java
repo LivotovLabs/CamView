@@ -34,7 +34,7 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
     protected CameraLiveView camera;
     protected ImageView hud;
     protected ScannerViewEventListener scannerViewEventListener;
-    protected BarcodeDecoder decoder;
+    protected BarcodeDecoder decoder = new ZXDecoder();
     protected int scannerSoundAudioResource = R.raw.camview_beep;
     protected boolean playSound = true;
 
@@ -116,14 +116,7 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
         CameraInfo finalCamera = camInfo;
         if (finalCamera == null)
         {
-            for (CameraInfo candidateCamera : CameraManager.getAvailableCameras(getContext()))
-            {
-                if (!candidateCamera.isFrontFacingCamera())
-                {
-                    finalCamera = candidateCamera;
-                    break;
-                }
-            }
+            finalCamera = CameraManager.findDefaultCamera(getContext());
         }
 
         if (finalCamera != null)
@@ -147,7 +140,7 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
                 @Override
                 public void onOperationFailed(Throwable e, int cameraErrorCode)
                 {
-                    Log.e(ScannerLiveView.class.getSimpleName(), e.getMessage(), e);
+                    Log.e(ScannerLiveView.class.getSimpleName(), e!=null? e.getMessage() : "n/a");
                 }
             });
         }
@@ -245,14 +238,13 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
 
     protected void notifyBarcodeRead(final String data)
     {
+        beep();
+
         if (scannerViewEventListener != null)
         {
             if (!TextUtils.isEmpty(data))
             {
-                if (scannerViewEventListener.onCodeScanned(data))
-                {
-                    beep();
-                }
+                scannerViewEventListener.onCodeScanned(data);
             }
         }
     }
@@ -284,13 +276,16 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
     @Override
     public void onReceiveProcessedCameraFrame(Object object)
     {
-        String data = object instanceof String ? (String) object : null;
+        String data = object!=null ? object.toString() : null;
 
-        if (TextUtils.isEmpty(lastDataDecoded) || !lastDataDecoded.equalsIgnoreCase(data) || (System.currentTimeMillis() - lastDataDecodedTimestamp) > sameCodeRescanProtectionTime)
+        if (!TextUtils.isEmpty(data))
         {
-            lastDataDecoded = data;
-            lastDataDecodedTimestamp = System.currentTimeMillis();
-            notifyBarcodeRead(data);
+            if (TextUtils.isEmpty(lastDataDecoded) || !lastDataDecoded.equalsIgnoreCase(data) || (System.currentTimeMillis() - lastDataDecodedTimestamp) > sameCodeRescanProtectionTime)
+            {
+                lastDataDecoded = data;
+                lastDataDecodedTimestamp = System.currentTimeMillis();
+                notifyBarcodeRead(data);
+            }
         }
 
         if (camera != null)
@@ -308,7 +303,7 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
 
     public interface ScannerViewEventListener
     {
-        boolean onCodeScanned(final String data);
+        void onCodeScanned(final String data);
     }
 
 

@@ -96,13 +96,11 @@ public class ScannerFragment extends Fragment implements ScannerLiveView.Scanner
         return scanner;
     }
 
-    public boolean onCodeScanned(final String data)
+    public void onCodeScanned(final String data)
     {
         if (scannerViewEventListener != null)
         {
             scannerViewEventListener.onCodeScanned(data);
         }
-
-        return true;
     }
 }
