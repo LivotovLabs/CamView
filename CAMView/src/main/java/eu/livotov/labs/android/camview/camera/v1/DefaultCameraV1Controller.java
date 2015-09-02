@@ -101,42 +101,45 @@ public class DefaultCameraV1Controller extends AbstractController implements Cam
     @Override
     public void startPreview(SurfaceView surfaceView) throws IOException
     {
-        try
+        if (isCameraReadyForUserOperations())
         {
-            android.hardware.Camera.Parameters parameters = CameraUtilsV1.getMainCameraParameters(rawCameraObject);
-            parameters.setPreviewFormat(previewFormat);
-            rawCameraObject.setParameters(parameters);
-        }
-        catch (Throwable err)
-        {
-            Log.e(getClass().getSimpleName(), "Master parameters set was rejected by a camera, trying failsafe one.", err);
-
             try
             {
-                android.hardware.Camera.Parameters parameters = CameraUtilsV1.getFailsafeCameraParameters(rawCameraObject);
+                android.hardware.Camera.Parameters parameters = CameraUtilsV1.getMainCameraParameters(rawCameraObject);
                 parameters.setPreviewFormat(previewFormat);
                 rawCameraObject.setParameters(parameters);
             }
-            catch (Throwable err2)
+            catch (Throwable err)
             {
-                Log.e(getClass().getSimpleName(), "Failsafe parameters set was rejected by a camera, trying to use it as is.", err2);
+                Log.e(getClass().getSimpleName(), "Master parameters set was rejected by a camera, trying failsafe one.", err);
+
+                try
+                {
+                    android.hardware.Camera.Parameters parameters = CameraUtilsV1.getFailsafeCameraParameters(rawCameraObject);
+                    parameters.setPreviewFormat(previewFormat);
+                    rawCameraObject.setParameters(parameters);
+                }
+                catch (Throwable err2)
+                {
+                    Log.e(getClass().getSimpleName(), "Failsafe parameters set was rejected by a camera, trying to use it as is.", err2);
+                }
             }
-        }
 
-        if (Build.VERSION.SDK_INT < 11)
-        {
-            adjustSurfaceHolderPre11();
-        }
+            if (Build.VERSION.SDK_INT < 11)
+            {
+                adjustSurfaceHolderPre11();
+            }
 
-        if (surfaceHolder == null || surfaceHolder != surfaceView.getHolder())
-        {
-            surfaceHolder = surfaceView.getHolder();
-            rawCameraObject.setPreviewDisplay(surfaceHolder);
-        }
+            if (surfaceHolder == null || surfaceHolder != surfaceView.getHolder())
+            {
+                surfaceHolder = surfaceView.getHolder();
+                rawCameraObject.setPreviewDisplay(surfaceHolder);
+            }
 
-        CameraUtilsV1.computeAspectRatiosForSurface(Integer.parseInt(camera.getCameraId()), rawCameraObject, surfaceView);
-        rawCameraObject.startPreview();
-        rechargePreviewBuffer();
+            CameraUtilsV1.computeAspectRatiosForSurface(Integer.parseInt(camera.getCameraId()), rawCameraObject, surfaceView);
+            rawCameraObject.startPreview();
+            rechargePreviewBuffer();
+        }
     }
 
     @TargetApi(10)
@@ -155,7 +158,7 @@ public class DefaultCameraV1Controller extends AbstractController implements Cam
     @Override
     public void stopPreview()
     {
-        if (surfaceHolder != null)
+        if (isCameraReadyForUserOperations() && surfaceHolder != null)
         {
             stopLiveDataCapture();
             rawCameraObject.stopPreview();
@@ -166,14 +169,17 @@ public class DefaultCameraV1Controller extends AbstractController implements Cam
     @Override
     public void requestLiveData(LiveDataProcessingCallback callback)
     {
-        if (surfaceHolder != null && callback != null)
+        if (isCameraReadyForUserOperations())
         {
-            startLiveDataCapture(callback);
-            rechargePreviewBuffer();
-        }
-        else
-        {
-            new IllegalStateException("Live data can only be requested after calling startPreview() !");
+            if (surfaceHolder != null && callback != null)
+            {
+                startLiveDataCapture(callback);
+                rechargePreviewBuffer();
+            }
+            else
+            {
+                new IllegalStateException("Live data can only be requested after calling startPreview() !");
+            }
         }
     }
 
@@ -201,7 +207,7 @@ public class DefaultCameraV1Controller extends AbstractController implements Cam
     @Override
     public void takePicture(final PictureProcessingCallback callback)
     {
-        if (isOpen.get() && !isInInitState.get() && rawCameraObject != null)
+        if (isCameraReadyForUserOperations())
         {
             rawCameraObject.takePicture(new Camera.ShutterCallback()
             {
@@ -237,7 +243,7 @@ public class DefaultCameraV1Controller extends AbstractController implements Cam
     @Override
     public void switchFlashlight(boolean turnOn)
     {
-        if (isOpen.get() && !isInInitState.get() && rawCameraObject != null)
+        if (isCameraReadyForUserOperations())
         {
             final android.hardware.Camera.Parameters parameters = rawCameraObject.getParameters();
 
@@ -270,13 +276,19 @@ public class DefaultCameraV1Controller extends AbstractController implements Cam
     @Override
     public void switchAutofocus(boolean useAutofocus)
     {
+        if (isCameraReadyForUserOperations())
+        {
 
+        }
     }
 
     @Override
     public void requestFocus()
     {
+        if (isCameraReadyForUserOperations())
+        {
 
+        }
     }
 
     private void open(final CameraDelayedOperationResult callback)
@@ -361,10 +373,15 @@ public class DefaultCameraV1Controller extends AbstractController implements Cam
     }
 
 
+    private boolean isCameraReadyForUserOperations()
+    {
+        return isOpen.get() && !isInInitState.get();
+    }
+
     @Override
     public void onPreviewFrame(byte[] data, Camera camera)
     {
-        if (liveFrameProcessingThread != null && data != null)
+        if (liveFrameProcessingThread != null && data != null && isCameraReadyForUserOperations())
         {
             final android.hardware.Camera.Size size = rawCameraObject.getParameters().getPreviewSize();
             liveFrameProcessingThread.submitLiveFrame(data, size.width, size.height);
