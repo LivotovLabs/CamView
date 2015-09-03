@@ -20,6 +20,9 @@ import java.util.List;
  */
 public class CameraUtilsV1
 {
+    private static final int PICTURE_SIZE_MAX_WIDTH = 1280;
+    private static final int PREVIEW_SIZE_MAX_WIDTH = 640;
+
     static String findSettableValue(Collection<String> supportedValues, String... desiredValues)
     {
         String result = null;
@@ -142,6 +145,118 @@ public class CameraUtilsV1
             setFocusMode(parameters);
         }
         return parameters;
+    }
+
+    static void setupSurfaceAndCameraForPreview(int cameraId, Camera camera, SurfaceView surfaceView)
+    {
+        ImageParameters mImageParameters = new ImageParameters();
+        Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+        Camera.getCameraInfo(cameraId, cameraInfo);
+
+        // Clockwise rotation needed to align the window display to the natural position
+        int rotation = ((WindowManager) surfaceView.getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
+        int degrees = 0;
+
+        switch (rotation)
+        {
+            case Surface.ROTATION_0:
+            {
+                degrees = 0;
+                break;
+            }
+            case Surface.ROTATION_90:
+            {
+                degrees = 90;
+                break;
+            }
+            case Surface.ROTATION_180:
+            {
+                degrees = 180;
+                break;
+            }
+            case Surface.ROTATION_270:
+            {
+                degrees = 270;
+                break;
+            }
+        }
+
+        int displayOrientation;
+
+        // CameraInfo.Orientation is the angle relative to the natural position of the device
+        // in clockwise rotation (angle that is rotated clockwise from the natural position)
+        if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT)
+        {
+            // Orientation is angle of rotation when facing the camera for
+            // the camera image to match the natural orientation of the device
+            displayOrientation = (cameraInfo.orientation + degrees) % 360;
+            displayOrientation = (360 - displayOrientation) % 360;
+        }
+        else
+        {
+            displayOrientation = (cameraInfo.orientation - degrees + 360) % 360;
+        }
+
+        mImageParameters.mDisplayOrientation = displayOrientation;
+        mImageParameters.mLayoutOrientation = degrees;
+
+        camera.setDisplayOrientation(mImageParameters.mDisplayOrientation);
+
+
+        // Never keep a global parameters
+        Camera.Parameters parameters = camera.getParameters();
+
+        Camera.Size bestPreviewSize = determineBestPreviewSize(parameters);
+        Camera.Size bestPictureSize = determineBestPictureSize(parameters);
+
+        parameters.setPreviewSize(bestPreviewSize.width, bestPreviewSize.height);
+        parameters.setPictureSize(bestPictureSize.width, bestPictureSize.height);
+
+
+        // Set continuous picture focus, if it's supported
+        if (parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE))
+        {
+            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+        }
+
+        // Lock in the changes
+        camera.setParameters(parameters);
+    }
+
+    static Camera.Size determineBestPreviewSize(Camera.Parameters parameters)
+    {
+        return determineBestSize(parameters.getSupportedPreviewSizes(), PREVIEW_SIZE_MAX_WIDTH);
+    }
+
+    static Camera.Size determineBestPictureSize(Camera.Parameters parameters)
+    {
+        return determineBestSize(parameters.getSupportedPictureSizes(), PICTURE_SIZE_MAX_WIDTH);
+    }
+
+    static Camera.Size determineBestSize(List<Camera.Size> sizes, int widthThreshold)
+    {
+        Camera.Size bestSize = null;
+        Camera.Size size;
+        int numOfSizes = sizes.size();
+        for (int i = 0; i < numOfSizes; i++)
+        {
+            size = sizes.get(i);
+            boolean isDesireRatio = (size.width / 4) == (size.height / 3);
+            boolean isBetterSize = (bestSize == null) || size.width > bestSize.width;
+
+            if (isDesireRatio && isBetterSize)
+            {
+                bestSize = size;
+            }
+        }
+
+        if (bestSize == null)
+        {
+            Log.d(CameraUtilsV1.class.getSimpleName(), "cannot find the best camera size");
+            return sizes.get(sizes.size() - 1);
+        }
+
+        return bestSize;
     }
 
     static void computeAspectRatiosForSurface(int cameraId, Camera camera, SurfaceView surfaceView)

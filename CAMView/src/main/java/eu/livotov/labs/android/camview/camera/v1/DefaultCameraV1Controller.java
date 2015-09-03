@@ -136,7 +136,8 @@ public class DefaultCameraV1Controller extends AbstractController implements Cam
                 rawCameraObject.setPreviewDisplay(surfaceHolder);
             }
 
-            CameraUtilsV1.computeAspectRatiosForSurface(Integer.parseInt(camera.getCameraId()), rawCameraObject, surfaceView);
+            //CameraUtilsV1.computeAspectRatiosForSurface(Integer.parseInt(camera.getCameraId()), rawCameraObject, surfaceView);
+            CameraUtilsV1.setupSurfaceAndCameraForPreview(Integer.parseInt(camera.getCameraId()), rawCameraObject, surfaceView);
             rawCameraObject.startPreview();
             rechargePreviewBuffer();
         }
