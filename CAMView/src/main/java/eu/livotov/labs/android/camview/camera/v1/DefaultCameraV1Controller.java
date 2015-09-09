@@ -67,7 +67,7 @@ public class DefaultCameraV1Controller extends AbstractController implements Cam
 
                     if (callback != null)
                     {
-                        callback.onOperationCompleted();
+                        callback.onOperationCompleted(DefaultCameraV1Controller.this);
                     }
                 }
 
@@ -325,7 +325,7 @@ public class DefaultCameraV1Controller extends AbstractController implements Cam
 
                     if (callback != null)
                     {
-                        callback.onOperationCompleted();
+                        callback.onOperationCompleted(DefaultCameraV1Controller.this);
                     }
                 }
 
