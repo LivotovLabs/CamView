@@ -5,7 +5,7 @@ package eu.livotov.labs.android.camview.camera;
  */
 public interface CameraDelayedOperationResult
 {
-    void onOperationCompleted();
+    void onOperationCompleted(CameraController controller);
 
     void onOperationFailed(Throwable exception, int cameraErrorCode);
 }

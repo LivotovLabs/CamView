@@ -1,33 +1,40 @@
 CAMView
-=======
+===
 
- Android view component to display the live picture from device camera and optionally provide developer with the 
- preview data for any external decoding processes within application.
+ Android library with simple yet powerful components for using device camera in your apps.
 
- The main goal of this project is to have a simple and clean view component which can be easily put to an existing
+ The library contains a set of components (views), ready to be put to your layout files in order to obtain the following functionality:
+
+ - Instantly display the live preview video feed from the device camera
+ - Scan barcodes
+ - Perform your own camera data processing
+
+ Library automatically uses the old or new (V2) Android Camera API, depending on your OS version
+
+ The main goal of this project is to have a simple and clean components, ready to be put to an existing
  view hierarchy of any existing activity, fragment or just to a layout file like any other Android component such as
  TextView, ImageView, etc. 
  
- CAMView takes all dirty job for handling all routines for a camera initialization, configuration, streaming, 
- orientation changes, device and cameras compatibility options, etc, etc. So just put it to your layout and you're armed
- with the live picture from the camera.
+ CAMView takes and hides all the dirty work and hacks for handling all the low level routines, such as camera initialization,
+ configuration, streaming, orientation changes, device and cameras compatibility, threading, etc, etc, etc.
+
+ Simply put the appropriate view component to your layout and your app is now camera-ready.
 
 
 Status
-======
+===
 
-- Current stable version: 1.1.0
-- Current development version: 2.0.0-SNAPSHOT
+- Current stable version: **n/a**
+- Current development version: **2.0.0.DEV1.SNAPSHOT**
+- Historical releases: **1.1.0** (Note, 1.x versions are not API compatible with the 2.x ones)
 
- Please feel free to share your comments and suggestions, report any bugs or submit your pull requests 
- (second is even better :)
+ Please feel free to share your bugs, feature requests and pull requests of course. Issues sections is waiting for you :)
 
-Note, 1.x branch is the last one, supports Android 2.x SDK. Branch 2.x will be focused for 4.0+ SDK only, while
-1.x branch will be on maintenance for critical bugs only.
+ **Please note** - current 2.x version is under heavy development and refactoring. APIs, classes and methods may be changed at any time.
 
 
 Get It
-======
+===
 
 - Maven repository: http://maven.livotovlabs.pro/content/groups/public
 - Group: eu.livotov.labs
@@ -42,95 +49,34 @@ repositories {
 }
 
 
-compile group: "eu.livotov.labs", name: "camview", version: "1.1.0", ext: "aar"
+compile group: "eu.livotov.labs", name: "camview", version: "x.y.z", ext: "aar" // replace x.y.z with the corresponding version number
 
 ```
 
 Usage
-=====
+===
           
- Usage is very straightforward - just add this component to your layout.xml (or programmatically at runtiume)
- and invoke the start() method when you need to start displaying the live stream from the camera:
+ Usage is very straightforward:
+
+ 1. Add the right component to your layout.xml (either in xml or programmatically at runtiume):
+
+  - eu.livotov.labs.android.camview.CameraLiveView - if you want to display the live stream from the camera (and optionally want to process the captured feed).
+  - eu.livotov.labs.android.camview.ScannerLiveView - if your goal is to scan barcodes. ScannerLiveView is ready to use barcode scanner.
 
 
- 1. Add to layout
+ 2. Get the CameraLiveView or ScannerLiveView instance and start the desired camera:
 
- ```
- <?xml version="1.0" encoding="utf-8"?>
- <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-         >
-
-     ...
-
-     <eu.livotov.labs.android.camview.CAMView
-             android:id="@+id/my_camera_view"
-             android:layout_width="match_parent"
-             android:layout_height="match_parent"
-             android:layout_gravity="center"/>
-
-     ...
-
- </FrameLayout>
- ```
+  - *startCameta()* for the CameraLiveView or *startScanner()* for the ScannerLiveView
+  - If you want to work with the specific camera, get the available cameras list **getAvailableCameras()** and pass the selected one into the **startCamera(...)** or **startScanner(...)** method.
 
 
- 2. Get the CAMView instance
-
- ```
- cameraView = (CAMView) findViewById(R.id.my_camera_view);
- ```
+ 3. For barcodes recognition, set your barcode listener into the ScannerLiveView instance: **setScannerViewEventListener(...)**
 
 
- 3. Begin streaming live picture from the default camera.
-
- ```
- cameraView.start();
- ```
+ 4. When your activity stops, do not forget to release the camera and stop all previews and working threads by calling : **stopCamera()** or **stopScanner()** on appropriate LiveCameraView or LiveScannerView instance.
 
 
- 3.1 Or, if you need to work with the specific camera:
+Documentation
+===
 
- ```
- // Get the list of availabvle cameras
- Collection<CameraEnumeration> allCams = cameraView.enumerateCameras();
-
- // Start streaming with the specific camera id:
- cameraView.start(allCams.get(somePosition).getCameraId());
- ```
-
- 3.2 Control flash, if required
- 
- ```
-    cameraView.switchFlash(boolean onoff);
- ```
- 
- 4. If you need to process live data from the camera during the live streaming process (for instance, 
-    for a barcode recognition) - just enable this and use the listener callback:
-
- ```
-     cameraView.setCaptureStreamingFrames(true);
-     cameraView.setCamViewListener(this);
-     
-     ... 
-     
-     public void onPreviewData(final byte[] data, final int previewFormat, final Camera.Size size)
-     {
-         // do smth with the frame from the camera here - it comes directly from the SurfaceView object,
-         so deal with the data as usual.
-     }
- ```
-   Do not forget to disable preview frames capturing when you don't need them anymore - this will reduce load
-   to device CPU and memory. You may enable capturing back at any time, once you need it again.
-   
- ```
-   cameraView.setCaptureStreamingFrames(false);
- ```  
-
-
- 5. Stop streaming from the camera
-
- ```
- cameraView.stop();
- ```
+ More documentation will be added by release.

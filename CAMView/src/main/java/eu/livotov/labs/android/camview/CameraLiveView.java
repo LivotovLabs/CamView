@@ -9,9 +9,13 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import eu.livotov.labs.android.camview.camera.CameraController;
+import eu.livotov.labs.android.camview.camera.CameraDelayedOperationResult;
+import eu.livotov.labs.android.camview.camera.CameraInfo;
+import eu.livotov.labs.android.camview.camera.CameraManager;
 
 /**
  * (c) Livotov Labs Ltd. 2012
@@ -52,7 +56,80 @@ public class CameraLiveView extends SurfaceView implements SurfaceHolder.Callbac
         getHolder().addCallback(this);
     }
 
-    public void setCamera(CameraController camera) throws IOException
+    /**
+     * Provides the list of all available cameras on this device
+     *
+     * @return
+     */
+    public Collection<CameraInfo> getAvailableCameras()
+    {
+        return CameraManager.getAvailableCameras(getContext());
+    }
+
+    /**
+     * Starts scanner, using device default camera
+     */
+    public void startCamera()
+    {
+        startCamera(null);
+    }
+
+    /**
+     * Starts scanner, using particular camera. Use {@link #getAvailableCameras()} in order to get a list of all accessible cameras on this device
+     *
+     * @param camInfo
+     */
+    public void startCamera(CameraInfo camInfo)
+    {
+        CameraInfo finalCamera = camInfo;
+
+        if (finalCamera == null)
+        {
+            finalCamera = CameraManager.findDefaultCamera(getContext());
+        }
+
+        if (finalCamera != null)
+        {
+            CameraManager.open(finalCamera, new CameraDelayedOperationResult()
+            {
+                @Override
+                public void onOperationCompleted(CameraController controller)
+                {
+                    try
+                    {
+                        setCamera(controller);
+                    }
+                    catch (IOException e)
+                    {
+                        Log.e(ScannerLiveView.class.getSimpleName(), e.getMessage(), e);
+                    }
+                }
+
+                @Override
+                public void onOperationFailed(Throwable e, int cameraErrorCode)
+                {
+                    Log.e(ScannerLiveView.class.getSimpleName(), e != null ? e.getMessage() : "n/a");
+                }
+            });
+        }
+        else
+        {
+            throw new RuntimeException("Cannot find any camera on device");
+        }
+    }
+
+    public void stopCamera()
+    {
+        try
+        {
+            setCamera(null);
+        }
+        catch (IOException ignored)
+        {
+        }
+    }
+
+    protected void setCamera(CameraController camera) throws IOException
     {
         if (camera == null)
         {

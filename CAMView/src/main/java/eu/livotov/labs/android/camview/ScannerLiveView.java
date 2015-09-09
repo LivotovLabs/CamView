@@ -121,13 +121,14 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
 
         if (finalCamera != null)
         {
-            controller = CameraManager.open(finalCamera, new CameraDelayedOperationResult()
+            CameraManager.open(finalCamera, new CameraDelayedOperationResult()
             {
                 @Override
-                public void onOperationCompleted()
+                public void onOperationCompleted(CameraController controller)
                 {
                     try
                     {
+                        ScannerLiveView.this.controller = controller;
                         camera.setCamera(controller);
                         resumeGrabbing();
                     }
