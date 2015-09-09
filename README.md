@@ -3,22 +3,23 @@ CAMView
 
  Android library with simple yet powerful components for using device camera in your apps.
 
- The library contains a set of components (views), ready to be put to your layout files in order to obtain the following functionality:
+ The library contains a set of components (views), ready to be put to your layout files in order to 
+ give developer instant access to the following features:
 
  - Instantly display the live preview video feed from the device camera
- - Scan barcodes
- - Perform your own camera data processing
+ - Scan barcodes (using built-in ZXing decoding engine)
+ - Perform your own camera live data processing
 
- Library automatically uses the old or new (V2) Android Camera API, depending on your OS version
+ Library automatically uses old or new (V2) Android Camera API, depending on your OS version
 
  The main goal of this project is to have a simple and clean components, ready to be put to an existing
  view hierarchy of any existing activity, fragment or just to a layout file like any other Android component such as
  TextView, ImageView, etc. 
  
- CAMView takes and hides all the dirty work and hacks for handling all the low level routines, such as camera initialization,
+ CAMView takes and hides all the dirty work and hacks for handling the low level routines, such as camera initialization,
  configuration, streaming, orientation changes, device and cameras compatibility, threading, etc, etc, etc.
 
- Simply put the appropriate view component to your layout and your app is now camera-ready.
+ Simply put the appropriate view component to your layout and your app is camera-ready.
 
 
 Status
