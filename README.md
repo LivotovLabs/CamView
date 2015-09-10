@@ -29,7 +29,7 @@ Status
 - Current development version: **2.0.0.DEV1-SNAPSHOT**
 - Historical releases: **1.1.0** (Note, 1.x versions are not API compatible with the 2.x ones)
 
- Please feel free to share your bugs, feature requests and pull requests of course. Issues sections is waiting for you :)
+ Please feel free to share your bugs, feature requests and pull requests of course. The "Issues" section is waiting for you :)
 
  **Please note** - current 2.x version is under heavy development and refactoring. APIs, classes and methods may be changed at any time.
 
