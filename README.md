@@ -50,7 +50,7 @@ repositories {
 }
 
 
-compile ('eu.livotov.labs:camview:x.y.z@aar') {transitive=true}  // replace x.y.z with the corresponding version number
+compile ('eu.livotov.labs:camview:2.0.0.DEV1-SNAPSHOT@aar') {transitive=true}
 
 ```
 
