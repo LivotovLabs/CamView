@@ -26,7 +26,7 @@ Status
 ===
 
 - Current stable version: **n/a**
-- Current development version: **2.0.0.DEV1.SNAPSHOT**
+- Current development version: **2.0.0.DEV1-SNAPSHOT**
 - Historical releases: **1.1.0** (Note, 1.x versions are not API compatible with the 2.x ones)
 
  Please feel free to share your bugs, feature requests and pull requests of course. Issues sections is waiting for you :)
@@ -67,7 +67,7 @@ Usage
 
  2. Get the CameraLiveView or ScannerLiveView instance and start the desired camera:
 
-  - *startCameta()* for the CameraLiveView or *startScanner()* for the ScannerLiveView
+  - *startCamera()* for the CameraLiveView or *startScanner()* for the ScannerLiveView
   - If you want to work with the specific camera, get the available cameras list **getAvailableCameras()** and pass the selected one into the **startCamera(...)** or **startScanner(...)** method.
 
 
