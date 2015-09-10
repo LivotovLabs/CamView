@@ -50,7 +50,7 @@ repositories {
 }
 
 
-compile group: "eu.livotov.labs", name: "camview", version: "x.y.z", ext: "aar" // replace x.y.z with the corresponding version number
+compile ('eu.livotov.labs:camview:x.y.z@aar') {transitive=true}  // replace x.y.z with the corresponding version number
 
 ```
 
