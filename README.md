@@ -80,4 +80,4 @@ Usage
 Documentation
 ===
 
- More documentation will be added by release.
+ More documentation will be added on release.
