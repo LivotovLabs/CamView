@@ -22,11 +22,12 @@ import eu.livotov.labs.android.camview.scanner.decoder.BarcodeDecoder;
 import eu.livotov.labs.android.camview.scanner.decoder.zxing.ZXDecoder;
 import eu.livotov.labs.android.camview.scanner.util.SoundPlayer;
 
+
 /**
  * (c) Livotov Labs Ltd. 2012
  * Date: 03/11/2014
  */
-public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCallback
+public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCallback, CameraLiveView.CameraLiveViewEventsListener
 {
     public final static long DEFAULT_SAMECODE_RESCAN_PROTECTION_TIME_MS = 5000;
     public final static long DEFAULT_DECODE_THROTTLE_MS = 300;
@@ -60,6 +61,8 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
         hud = (ImageView) root.findViewById(R.id.cameraHud);
         decoder = new ZXDecoder();
         soundPlayer = new SoundPlayer(getContext());
+
+        camera.setCameraLiveViewEventsListener(this);
     }
 
     protected int getScannerLayoutResource()
@@ -121,29 +124,7 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
 
         if (finalCamera != null)
         {
-            CameraManager.open(finalCamera, new CameraDelayedOperationResult()
-            {
-                @Override
-                public void onOperationCompleted(CameraController controller)
-                {
-                    try
-                    {
-                        ScannerLiveView.this.controller = controller;
-                        camera.setCamera(controller);
-                        resumeGrabbing();
-                    }
-                    catch (IOException e)
-                    {
-                        Log.e(ScannerLiveView.class.getSimpleName(), e.getMessage(), e);
-                    }
-                }
-
-                @Override
-                public void onOperationFailed(Throwable e, int cameraErrorCode)
-                {
-                    Log.e(ScannerLiveView.class.getSimpleName(), e!=null? e.getMessage() : "n/a");
-                }
-            });
+            camera.startCamera(finalCamera);
         }
         else
         {
@@ -164,10 +145,7 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
      */
     public void stopScanner()
     {
-        if (controller != null)
-        {
-            controller.close();
-        }
+        camera.stopCamera();
     }
 
     public long getSameCodeRescanProtectionTime()
@@ -302,8 +280,41 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
         }
     }
 
+    @Override
+    public void onCameraStarted(CameraLiveView camera)
+    {
+        controller = camera.getController();
+        resumeGrabbing();
+
+        if (scannerViewEventListener!=null)
+        {
+            scannerViewEventListener.onScannerStarted(this);
+        }
+    }
+
+    @Override
+    public void onCameraStopped(CameraLiveView camera)
+    {
+        if (scannerViewEventListener!=null)
+        {
+            scannerViewEventListener.onScannerStopped(this);
+        }
+    }
+
+    @Override
+    public void onCameraError(Throwable err)
+    {
+        if (scannerViewEventListener!=null)
+        {
+            scannerViewEventListener.onScannerError(err);
+        }
+    }
+
     public interface ScannerViewEventListener
     {
+        void onScannerStarted(ScannerLiveView scanner);
+        void onScannerStopped(ScannerLiveView scanner);
+        void onScannerError(Throwable err);
         void onCodeScanned(final String data);
     }
 

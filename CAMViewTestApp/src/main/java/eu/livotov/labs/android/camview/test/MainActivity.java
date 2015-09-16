@@ -33,11 +33,30 @@ public class MainActivity extends Activity
         camera.setScannerViewEventListener(new ScannerLiveView.ScannerViewEventListener()
         {
             @Override
+            public void onScannerStarted(ScannerLiveView scanner)
+            {
+                Toast.makeText(MainActivity.this,"Scanner Started",Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onScannerStopped(ScannerLiveView scanner)
+            {
+                Toast.makeText(MainActivity.this,"Scanner Stopped",Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onScannerError(Throwable err)
+            {
+                Toast.makeText(MainActivity.this,"Scanner Error: " + err.getMessage(),Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
             public void onCodeScanned(String data)
             {
                 Toast.makeText(MainActivity.this, data, Toast.LENGTH_SHORT).show();
             }
         });
+
         findViewById(R.id.btnFlash).setOnClickListener(new View.OnClickListener()
         {
             @Override

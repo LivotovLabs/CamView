@@ -27,6 +27,7 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
     private CameraController camera;
     private SurfaceView surfaceView;
     private AtomicBoolean holderReady = new AtomicBoolean(false);
+    private CameraLiveViewEventsListener cameraLiveViewEventsListener;
 
     public CameraLiveView(Context context)
     {
@@ -51,6 +52,16 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
     {
         super(context, attrs, defStyleAttr, defStyleRes);
         initUI();
+    }
+
+    public CameraLiveViewEventsListener getCameraLiveViewEventsListener()
+    {
+        return cameraLiveViewEventsListener;
+    }
+
+    public void setCameraLiveViewEventsListener(CameraLiveViewEventsListener cameraLiveViewEventsListener)
+    {
+        this.cameraLiveViewEventsListener = cameraLiveViewEventsListener;
     }
 
     private void initUI()
@@ -102,10 +113,20 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
                     try
                     {
                         setCamera(controller);
+
+                        if (cameraLiveViewEventsListener != null)
+                        {
+                            cameraLiveViewEventsListener.onCameraStarted(CameraLiveView.this);
+                        }
                     }
                     catch (IOException e)
                     {
                         Log.e(ScannerLiveView.class.getSimpleName(), e.getMessage(), e);
+
+                        if (cameraLiveViewEventsListener != null)
+                        {
+                            cameraLiveViewEventsListener.onCameraError(e);
+                        }
                     }
                 }
 
@@ -113,6 +134,11 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
                 public void onOperationFailed(Throwable e, int cameraErrorCode)
                 {
                     Log.e(ScannerLiveView.class.getSimpleName(), e != null ? e.getMessage() : "n/a");
+
+                    if (cameraLiveViewEventsListener != null)
+                    {
+                        cameraLiveViewEventsListener.onCameraError(e != null ? e : new RuntimeException("Camera system error " + cameraErrorCode));
+                    }
                 }
             });
         }
@@ -126,6 +152,10 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
     {
         try
         {
+            if (cameraLiveViewEventsListener != null)
+            {
+                cameraLiveViewEventsListener.onCameraStopped(this);
+            }
             setCamera(null);
         }
         catch (IOException ignored)
@@ -137,15 +167,17 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
     {
         if (camera == null)
         {
-            if (this.camera!=null)
+            if (this.camera != null)
             {
                 this.camera.close();
                 this.camera = null;
             }
-        } else if (!camera.isReady())
+        }
+        else if (!camera.isReady())
         {
             throw new IllegalArgumentException("Camera is not ready, please provide only initialized camera objects here !");
-        } else
+        }
+        else
         {
             this.camera = camera;
 
@@ -160,7 +192,7 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
     public void surfaceCreated(SurfaceHolder holder)
     {
         holderReady.set(true);
-        if (camera!=null)
+        if (camera != null)
         {
             try
             {
@@ -168,7 +200,7 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
             }
             catch (IOException e)
             {
-                Log.e(CameraLiveView.class.getSimpleName(),e.getMessage(),e);
+                Log.e(CameraLiveView.class.getSimpleName(), e.getMessage(), e);
             }
         }
     }
@@ -176,7 +208,7 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
     {
-        if (camera!=null)
+        if (camera != null)
         {
             camera.stopPreview();
 
@@ -201,7 +233,7 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
     {
         super.onConfigurationChanged(newConfig);
 
-        if (camera!=null)
+        if (camera != null)
         {
             restartCameraOnConfigurationChanged();
         }
@@ -216,13 +248,13 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
         }
         catch (IOException e)
         {
-            Log.e(CameraLiveView.class.getSimpleName(),e.getMessage(),e);
+            Log.e(CameraLiveView.class.getSimpleName(), e.getMessage(), e);
         }
     }
 
     public boolean resumeDisplay()
     {
-        if (camera!=null)
+        if (camera != null)
         {
             try
             {
@@ -234,7 +266,8 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
                 Log.e(CameraLiveView.class.getSimpleName(), e.getMessage(), e);
                 return false;
             }
-        } else
+        }
+        else
         {
             return false;
         }
@@ -242,7 +275,7 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
 
     public void pauseDisplay()
     {
-        if (camera!=null)
+        if (camera != null)
         {
             camera.stopPreview();
         }
@@ -251,5 +284,14 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
     public CameraController getController()
     {
         return camera;
+    }
+
+    public interface CameraLiveViewEventsListener
+    {
+        void onCameraStarted(CameraLiveView camera);
+
+        void onCameraStopped(CameraLiveView camera);
+
+        void onCameraError(Throwable err);
     }
 }
