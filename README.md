@@ -26,7 +26,7 @@ Status
 ===
 
 - Current stable version: **n/a**
-- Current development version: **2.0.0.DEV1-SNAPSHOT**
+- Current development version: **2.0.0.DEV2-SNAPSHOT**
 - Historical releases: **1.1.0** (Note, 1.x versions are not API compatible with the 2.x ones)
 
  Please feel free to share your bugs, feature requests and pull requests of course. The "Issues" section is waiting for you :)
@@ -50,7 +50,7 @@ repositories {
 }
 
 
-compile ('eu.livotov.labs:camview:2.0.0.DEV1-SNAPSHOT@aar') {transitive=true}
+compile ('eu.livotov.labs:camview:2.0.0.DEV2-SNAPSHOT@aar') {transitive=true}
 
 ```
 
