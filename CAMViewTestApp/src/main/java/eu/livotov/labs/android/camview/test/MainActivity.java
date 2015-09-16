@@ -38,15 +38,20 @@ public class MainActivity extends Activity
                 Toast.makeText(MainActivity.this, data, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
         camera.startScanner();
     }
 
-
     @Override
-    protected void onDestroy()
+    protected void onPause()
     {
         camera.stopScanner();
-        super.onDestroy();
+        super.onPause();
     }
 
     public void toggleFlash(View view)
