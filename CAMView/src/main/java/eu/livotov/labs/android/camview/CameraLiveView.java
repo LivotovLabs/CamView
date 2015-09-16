@@ -7,6 +7,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.FrameLayout;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -21,9 +22,10 @@ import eu.livotov.labs.android.camview.camera.CameraManager;
  * (c) Livotov Labs Ltd. 2012
  * Date: 06/12/2013
  */
-public class CameraLiveView extends SurfaceView implements SurfaceHolder.Callback
+public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callback
 {
     private CameraController camera;
+    private SurfaceView surfaceView;
     private AtomicBoolean holderReady = new AtomicBoolean(false);
 
     public CameraLiveView(Context context)
@@ -53,7 +55,9 @@ public class CameraLiveView extends SurfaceView implements SurfaceHolder.Callbac
 
     private void initUI()
     {
-        getHolder().addCallback(this);
+        surfaceView = new SurfaceView(getContext());
+        surfaceView.getHolder().addCallback(this);
+        addView(surfaceView);
     }
 
     /**
@@ -147,7 +151,7 @@ public class CameraLiveView extends SurfaceView implements SurfaceHolder.Callbac
 
             if (holderReady.get())
             {
-                camera.startPreview(this);
+                camera.startPreview(surfaceView);
             }
         }
     }
@@ -160,7 +164,7 @@ public class CameraLiveView extends SurfaceView implements SurfaceHolder.Callbac
         {
             try
             {
-                camera.startPreview(this);
+                camera.startPreview(surfaceView);
             }
             catch (IOException e)
             {
@@ -178,7 +182,7 @@ public class CameraLiveView extends SurfaceView implements SurfaceHolder.Callbac
 
             try
             {
-                camera.startPreview(this);
+                camera.startPreview(surfaceView);
             }
             catch (IOException e)
             {
@@ -208,7 +212,7 @@ public class CameraLiveView extends SurfaceView implements SurfaceHolder.Callbac
         camera.stopPreview();
         try
         {
-            camera.startPreview(this);
+            camera.startPreview(surfaceView);
         }
         catch (IOException e)
         {
@@ -222,7 +226,7 @@ public class CameraLiveView extends SurfaceView implements SurfaceHolder.Callbac
         {
             try
             {
-                camera.startPreview(this);
+                camera.startPreview(surfaceView);
                 return true;
             }
             catch (IOException e)

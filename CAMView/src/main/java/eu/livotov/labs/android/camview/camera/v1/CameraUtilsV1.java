@@ -2,15 +2,14 @@ package eu.livotov.labs.android.camview.camera.v1;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.hardware.Camera;
 import android.os.Build;
-import android.util.Log;
+import android.view.Gravity;
 import android.view.Surface;
-import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 
 import java.util.Collection;
 import java.util.List;
@@ -20,9 +19,6 @@ import java.util.List;
  */
 public class CameraUtilsV1
 {
-    private static final int PICTURE_SIZE_MAX_WIDTH = 1280;
-    private static final int PREVIEW_SIZE_MAX_WIDTH = 640;
-
     static String findSettableValue(Collection<String> supportedValues, String... desiredValues)
     {
         String result = null;
@@ -203,14 +199,39 @@ public class CameraUtilsV1
         camera.setDisplayOrientation(mImageParameters.mDisplayOrientation);
 
 
-        // Never keep a global parameters
         Camera.Parameters parameters = camera.getParameters();
 
-        Camera.Size bestPreviewSize = determineBestPreviewSize(parameters);
-        Camera.Size bestPictureSize = determineBestPictureSize(parameters);
+        Camera.Size sz = getOptimalPreviewSize(parameters.getSupportedPreviewSizes(), surfaceView.getWidth(), surfaceView.getHeight());
+        parameters.setPreviewSize(sz.width, sz.height);
 
-        parameters.setPreviewSize(bestPreviewSize.width, bestPreviewSize.height);
-        parameters.setPictureSize(bestPictureSize.width, bestPictureSize.height);
+
+        //landscape
+        float ratio = 0;
+
+        if (surfaceView.getContext().getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
+        {
+            ratio = (float) sz.width / sz.height;
+        }
+        else
+        {
+            ratio = (float) sz.height / sz.width;
+        }
+
+        int new_width = 0, new_height = 0;
+        if (surfaceView.getWidth() / surfaceView.getHeight() < ratio)
+        {
+            new_width = Math.round(surfaceView.getHeight() * ratio);
+            new_height = surfaceView.getHeight();
+        }
+        else
+        {
+            new_width = surfaceView.getWidth();
+            new_height = Math.round(surfaceView.getWidth() / ratio);
+        }
+
+        FrameLayout.LayoutParams prms = new FrameLayout.LayoutParams(new_width, new_height);
+        prms.gravity = Gravity.CENTER;
+        surfaceView.setLayoutParams(prms);
 
 
         // Set continuous picture focus, if it's supported
@@ -223,173 +244,50 @@ public class CameraUtilsV1
         camera.setParameters(parameters);
     }
 
-    static Camera.Size determineBestPreviewSize(Camera.Parameters parameters)
+    private static Camera.Size getOptimalPreviewSize(List<Camera.Size> sizes, int w, int h)
     {
-        return determineBestSize(parameters.getSupportedPreviewSizes(), PREVIEW_SIZE_MAX_WIDTH);
-    }
+        final double ASPECT_TOLERANCE = 0.05;
+        double targetRatio = (double) w / h;
 
-    static Camera.Size determineBestPictureSize(Camera.Parameters parameters)
-    {
-        return determineBestSize(parameters.getSupportedPictureSizes(), PICTURE_SIZE_MAX_WIDTH);
-    }
-
-    static Camera.Size determineBestSize(List<Camera.Size> sizes, int widthThreshold)
-    {
-        Camera.Size bestSize = null;
-        Camera.Size size;
-        int numOfSizes = sizes.size();
-        for (int i = 0; i < numOfSizes; i++)
+        if (sizes == null)
         {
-            size = sizes.get(i);
-            boolean isDesireRatio = (size.width / 4) == (size.height / 3);
-            boolean isBetterSize = (bestSize == null) || size.width > bestSize.width;
+            return null;
+        }
 
-            if (isDesireRatio && isBetterSize)
+        Camera.Size optimalSize = null;
+
+        double minDiff = Double.MAX_VALUE;
+
+        int targetHeight = h;
+
+        // Find size
+        for (Camera.Size size : sizes)
+        {
+            double ratio = (double) size.width / size.height;
+            if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE)
             {
-                bestSize = size;
+                continue;
+            }
+            if (Math.abs(size.height - targetHeight) < minDiff)
+            {
+                optimalSize = size;
+                minDiff = Math.abs(size.height - targetHeight);
             }
         }
 
-        if (bestSize == null)
+        if (optimalSize == null)
         {
-            Log.d(CameraUtilsV1.class.getSimpleName(), "cannot find the best camera size");
-            return sizes.get(sizes.size() - 1);
-        }
-
-        return bestSize;
-    }
-
-    static void computeAspectRatiosForSurface(int cameraId, Camera camera, SurfaceView surfaceView)
-    {
-        final SurfaceHolder surfaceHolder = surfaceView.getHolder();
-
-        try
-        {
-            android.hardware.Camera.Parameters p = camera.getParameters();
-
-
-            int result = 90;
-            int outputResult = 90;
-
-
-            if (Build.VERSION.SDK_INT > 8)
+            minDiff = Double.MAX_VALUE;
+            for (Camera.Size size : sizes)
             {
-                int[] results = calculateResults(surfaceView, cameraId, result, outputResult);
-                result = results[0];
-                outputResult = results[1];
-            }
-
-            if (Build.VERSION.SDK_INT > 7)
-            {
-                try
+                if (Math.abs(size.height - targetHeight) < minDiff)
                 {
-                    camera.setDisplayOrientation(result);
-                }
-                catch (Throwable err)
-                {
-                    // very bad devices goes here
+                    optimalSize = size;
+                    minDiff = Math.abs(size.height - targetHeight);
                 }
             }
-
-            p.setRotation(outputResult);
-            camera.setPreviewDisplay(surfaceHolder);
-
-            android.hardware.Camera.Size closestSize = findClosestPreviewSize(surfaceView, p.getSupportedPreviewSizes());
-
-            if (closestSize != null)
-            {
-                ViewGroup.LayoutParams params = surfaceView.getLayoutParams();
-                params.width = (surfaceView.getWidth() > surfaceView.getHeight() ? closestSize.width : closestSize.height);
-                params.height = (surfaceView.getWidth() > surfaceView.getHeight() ? closestSize.height : closestSize.width);
-
-                if (params.width < surfaceView.getWidth() || params.height < surfaceView.getHeight())
-                {
-                    final int extraPixels = Math.max(surfaceView.getWidth() - params.width, surfaceView.getHeight() - params.height);
-                    params.width += extraPixels;
-                    params.height += extraPixels;
-                }
-
-                surfaceView.setLayoutParams(params);
-                p.setPreviewSize(closestSize.width, closestSize.height);
-            }
-
-            camera.setParameters(p);
         }
-        catch (Exception e)
-        {
-            Log.d(CameraUtilsV1.class.getSimpleName(), "Error starting camera preview: " + e.getMessage(), e);
-        }
+        return optimalSize;
     }
 
-    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
-    static int[] calculateResults(View view, int cameraId, int _result, int _outputResult)
-    {
-        int result = _result;
-        int outputResult = _outputResult;
-
-        try
-        {
-            android.hardware.Camera.CameraInfo info = new Camera.CameraInfo();
-            android.hardware.Camera.getCameraInfo(cameraId, info);
-
-            int rotation = ((WindowManager) view.getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
-            int degrees = 0;
-
-            switch (rotation)
-            {
-                case Surface.ROTATION_0:
-                    degrees = 0;
-                    break;
-                case Surface.ROTATION_90:
-                    degrees = 90;
-                    break;
-                case Surface.ROTATION_180:
-                    degrees = 180;
-                    break;
-                case Surface.ROTATION_270:
-                    degrees = 270;
-                    break;
-            }
-
-            if (info.facing == android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT)
-            {
-                result = (info.orientation + degrees) % 360;
-                outputResult = (info.orientation + degrees) % 360;
-                result = (360 - result) % 360;  // compensate the mirror
-            }
-            else
-            {  // back-facing
-                result = (info.orientation - degrees + 360) % 360;
-            }
-        }
-        catch (Throwable err)
-        {
-            // very bad devices goes here
-        }
-        return new int[]{result, outputResult};
-    }
-
-
-    static android.hardware.Camera.Size findClosestPreviewSize(View view, List<android.hardware.Camera.Size> sizes)
-    {
-        int best = -1;
-        int bestScore = Integer.MAX_VALUE;
-
-        for (int i = 0; i < sizes.size(); i++)
-        {
-            android.hardware.Camera.Size s = sizes.get(i);
-
-            int dx = s.width - view.getWidth();
-            int dy = s.height - view.getHeight();
-
-            int score = dx * dx + dy * dy;
-            if (score < bestScore)
-            {
-                best = i;
-                bestScore = score;
-            }
-        }
-
-        return best >= 0 ? sizes.get(best) : null;
-    }
 }
