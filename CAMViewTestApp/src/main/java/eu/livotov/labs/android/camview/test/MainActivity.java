@@ -38,6 +38,14 @@ public class MainActivity extends Activity
                 Toast.makeText(MainActivity.this, data, Toast.LENGTH_SHORT).show();
             }
         });
+        findViewById(R.id.btnFlash).setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                toggleFlash();
+            }
+        });
     }
 
     @Override
@@ -54,10 +62,10 @@ public class MainActivity extends Activity
         super.onPause();
     }
 
-    public void toggleFlash(View view)
+    public void toggleFlash()
     {
         flashStatus = !flashStatus;
-        controller.switchFlashlight(flashStatus);
+        camera.getCamera().getController().switchFlashlight(flashStatus);
     }
 
     @Override
