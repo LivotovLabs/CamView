@@ -4,19 +4,16 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
-import java.io.IOException;
 import java.util.Collection;
 
-import eu.livotov.labs.android.camview.camera.CameraManager;
 import eu.livotov.labs.android.camview.camera.CameraController;
-import eu.livotov.labs.android.camview.camera.CameraDelayedOperationResult;
 import eu.livotov.labs.android.camview.camera.CameraInfo;
+import eu.livotov.labs.android.camview.camera.CameraManager;
 import eu.livotov.labs.android.camview.camera.LiveDataProcessingCallback;
 import eu.livotov.labs.android.camview.scanner.decoder.BarcodeDecoder;
 import eu.livotov.labs.android.camview.scanner.decoder.zxing.ZXDecoder;
@@ -43,10 +40,10 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
 
     private volatile String lastDataDecoded;
     private volatile long lastDataDecodedTimestamp;
-    private volatile long lastDataSubmittedTimestamp;
     private volatile long decodeThrottleMillis = DEFAULT_DECODE_THROTTLE_MS;
     private volatile long sameCodeRescanProtectionTime = DEFAULT_SAMECODE_RESCAN_PROTECTION_TIME_MS;
     private CameraController controller;
+    private long lastTimeFrameProcessed;
 
     public ScannerLiveView(final Context context)
     {
@@ -134,7 +131,7 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
 
     private void resumeGrabbing()
     {
-        if (controller!=null)
+        if (controller != null)
         {
             controller.requestLiveData(this);
         }
@@ -239,14 +236,12 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
     @Override
     public Object onProcessCameraFrame(byte[] data, int width, int height)
     {
-        final long currentTime = System.currentTimeMillis();
-
-        if (currentTime - lastDataSubmittedTimestamp > decodeThrottleMillis)
+        if (System.currentTimeMillis()-lastTimeFrameProcessed > decodeThrottleMillis)
         {
-            lastDataSubmittedTimestamp = currentTime;
-            return decoder.decode(data, width, height);
-        }
-        else
+            final Object result = decoder.decode(data, width, height);
+            lastTimeFrameProcessed = System.currentTimeMillis();
+            return result;
+        } else
         {
             return null;
         }
@@ -255,11 +250,11 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
     @Override
     public void onReceiveProcessedCameraFrame(Object object)
     {
-        String data = object!=null ? object.toString() : null;
+        String data = object != null ? object.toString() : null;
 
         if (!TextUtils.isEmpty(data))
         {
-            if (TextUtils.isEmpty(lastDataDecoded) || !lastDataDecoded.equalsIgnoreCase(data) || (System.currentTimeMillis() - lastDataDecodedTimestamp) > sameCodeRescanProtectionTime)
+            if (TextUtils.isEmpty(lastDataDecoded) || !lastDataDecoded.equalsIgnoreCase(data) || (lastDataDecoded.equalsIgnoreCase(data) && (System.currentTimeMillis() - lastDataDecodedTimestamp) > sameCodeRescanProtectionTime))
             {
                 lastDataDecoded = data;
                 lastDataDecodedTimestamp = System.currentTimeMillis();
@@ -267,17 +262,7 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
             }
         }
 
-        if (camera != null)
-        {
-            postDelayed(new Runnable()
-            {
-                @Override
-                public void run()
-                {
-                    resumeGrabbing();
-                }
-            }, decodeThrottleMillis);
-        }
+        resumeGrabbing();
     }
 
     @Override
@@ -286,7 +271,7 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
         controller = camera.getController();
         resumeGrabbing();
 
-        if (scannerViewEventListener!=null)
+        if (scannerViewEventListener != null)
         {
             scannerViewEventListener.onScannerStarted(this);
         }
@@ -295,7 +280,7 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
     @Override
     public void onCameraStopped(CameraLiveView camera)
     {
-        if (scannerViewEventListener!=null)
+        if (scannerViewEventListener != null)
         {
             scannerViewEventListener.onScannerStopped(this);
         }
@@ -304,7 +289,7 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
     @Override
     public void onCameraError(Throwable err)
     {
-        if (scannerViewEventListener!=null)
+        if (scannerViewEventListener != null)
         {
             scannerViewEventListener.onScannerError(err);
         }
@@ -313,8 +298,11 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
     public interface ScannerViewEventListener
     {
         void onScannerStarted(ScannerLiveView scanner);
+
         void onScannerStopped(ScannerLiveView scanner);
+
         void onScannerError(Throwable err);
+
         void onCodeScanned(final String data);
     }
 

@@ -2,7 +2,6 @@ package eu.livotov.labs.android.camview.camera;
 
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 
 import eu.livotov.labs.android.camview.R;
 
@@ -41,21 +40,12 @@ public class LiveFrameProcessingHandler extends Handler
     {
         try
         {
+            uiHandler.removeMessages(R.id.camview_core_msg_livedataprocess_ok);
             final Object result = callback.onProcessCameraFrame(data, width, height);
-
-            if (result!=null)
-            {
-                Message.obtain(uiHandler, R.id.camview_core_msg_livedataprocess_ok, result).sendToTarget();
-            }
-            else
-            {
-                Message.obtain(uiHandler, R.id.camview_core_msg_livedataprocess_empty).sendToTarget();
-            }
+            Message.obtain(uiHandler, R.id.camview_core_msg_livedataprocess_ok, result).sendToTarget();
         }
         catch (Throwable err)
         {
-            Log.e(TAG, err.getMessage(), err);
-            Message.obtain(uiHandler, R.id.camview_core_msg_livedataprocess_empty).sendToTarget();
         }
     }
 }

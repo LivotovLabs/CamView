@@ -58,8 +58,8 @@ public class LiveFrameProcessingThread extends Thread
 
     public void submitLiveFrame(byte[] bytes, int width, int height)
     {
+        getDecoderHandler().removeMessages(R.id.camview_core_msg_livedataprocess_request);
         final Message message = Message.obtain(getDecoderHandler(), R.id.camview_core_msg_livedataprocess_request, width, height, bytes);
-
         if (message != null)
         {
             message.sendToTarget();

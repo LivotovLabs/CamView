@@ -30,6 +30,7 @@ public class MainActivity extends Activity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         camera = (ScannerLiveView) findViewById(R.id.camview);
+
         camera.setScannerViewEventListener(new ScannerLiveView.ScannerViewEventListener()
         {
             @Override

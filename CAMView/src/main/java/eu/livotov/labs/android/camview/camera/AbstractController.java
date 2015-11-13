@@ -42,10 +42,6 @@ public abstract class AbstractController implements CameraController
             {
                 liveDataProcessor.onReceiveProcessedCameraFrame(msg.obj);
             }
-            else if (msg.what == R.id.camview_core_msg_livedataprocess_empty)
-            {
-                liveDataProcessor.onReceiveProcessedCameraFrame(null);
-            }
         }
     }
 }

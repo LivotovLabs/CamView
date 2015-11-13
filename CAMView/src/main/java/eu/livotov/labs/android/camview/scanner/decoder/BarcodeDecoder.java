@@ -6,5 +6,6 @@ package eu.livotov.labs.android.camview.scanner.decoder;
  */
 public interface BarcodeDecoder
 {
+    void setScanAreaPercent(double percent);
     String decode(byte[] image, int width, int height);
 }

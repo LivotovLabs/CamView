@@ -16,7 +16,6 @@
  -->
 <resources>
     <item name="camview_core_msg_livedataprocess_ok" type="id"/>
-    <item name="camview_core_msg_livedataprocess_empty" type="id"/>
     <item name="camview_core_msg_livedataprocess_request" type="id"/>
     <item name="camview_core_msg_livedataprocess_quit" type="id"/>
 </resources>
