@@ -15,6 +15,7 @@ import eu.livotov.labs.android.camview.camera.CameraManager;
 import eu.livotov.labs.android.camview.camera.CameraController;
 import eu.livotov.labs.android.camview.camera.CameraDelayedOperationResult;
 import eu.livotov.labs.android.camview.camera.CameraInfo;
+import eu.livotov.labs.android.camview.scanner.decoder.zxing.ZXDecoder;
 
 
 public class MainActivity extends Activity
@@ -72,6 +73,9 @@ public class MainActivity extends Activity
     protected void onResume()
     {
         super.onResume();
+        ZXDecoder decoder = new ZXDecoder();
+        decoder.setScanAreaPercent(0.5);
+        camera.setDecoder(decoder);
         camera.startScanner();
     }
 

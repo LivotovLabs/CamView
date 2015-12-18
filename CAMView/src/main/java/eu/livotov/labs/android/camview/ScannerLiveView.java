@@ -79,6 +79,16 @@ public class ScannerLiveView extends FrameLayout implements LiveDataProcessingCa
         initUI();
     }
 
+    public BarcodeDecoder getDecoder()
+    {
+        return decoder;
+    }
+
+    public void setDecoder(BarcodeDecoder decoder)
+    {
+        this.decoder = decoder;
+    }
+
     @TargetApi(21)
     public ScannerLiveView(final Context context, final AttributeSet attrs, final int defStyleAttr, final int defStyleRes)
     {

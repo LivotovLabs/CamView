@@ -24,7 +24,7 @@ public class ZXDecoder implements BarcodeDecoder
     protected Map<DecodeHintType, Object> hints = new EnumMap<DecodeHintType, Object>(DecodeHintType.class);
 
     private MultiFormatReader reader;
-    private double scanAreaPercent = 0.8;
+    private double scanAreaPercent = 0.7;
 
     public ZXDecoder()
     {
@@ -35,6 +35,11 @@ public class ZXDecoder implements BarcodeDecoder
         hints.put(DecodeHintType.TRY_HARDER, true);
 
         reader.setHints(hints);
+    }
+
+    public double getScanAreaPercent()
+    {
+        return scanAreaPercent;
     }
 
     public void setScanAreaPercent(double scanAreaPercent)
