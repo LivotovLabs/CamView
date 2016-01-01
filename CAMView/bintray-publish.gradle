@@ -1,0 +1,98 @@
+apply plugin: 'com.github.dcendents.android-maven'
+apply plugin: 'com.jfrog.bintray'
+
+Properties properties = new Properties()
+Properties propertiesSecret = new Properties()
+propertiesSecret.load(project.rootProject.file('maven.secret.properties').newDataInputStream())
+properties.load(project.rootProject.file('maven.properties').newDataInputStream())
+
+group properties.getProperty("maven.group")
+version properties.getProperty("maven.version")
+
+
+install {
+    repositories.mavenInstaller {
+        // This generates POM.xml with proper parameters
+        pom {
+            project {
+                packaging 'aar'
+                groupId properties.getProperty("maven.group")
+                artifactId properties.getProperty("maven.artifact")
+                version properties.getProperty("maven.version")
+                name properties.getProperty("maven.info")
+                url properties.getProperty("maven.url.home")
+
+                // Set your license
+                licenses {
+                    license {
+                        name properties.getProperty("maven.license.name")
+                        url properties.getProperty("maven.license.url")
+                    }
+                }
+                developers {
+                    developer {
+                        id properties.getProperty("maven.developer.id")
+                        name properties.getProperty("maven.developer.name")
+                        email properties.getProperty("maven.developer.email")
+                    }
+                }
+                scm {
+                    connection properties.getProperty("maven.url.vcs")
+                    developerConnection properties.getProperty("maven.url.vcs")
+                    url properties.getProperty("maven.url.home")
+
+                }
+            }
+        }
+    }
+}
+
+bintray {
+    user = propertiesSecret.getProperty("maven.bintray.user")
+    key = propertiesSecret.getProperty("bintray.apikey")
+
+    configurations = ['archives']
+    pkg {
+        repo = propertiesSecret.getProperty("maven.bintray.repo")
+        name = properties.getProperty("maven.name")
+        desc = properties.getProperty("maven.info")
+        userOrg = propertiesSecret.getProperty("maven.bintray.org")
+        websiteUrl = properties.getProperty("maven.url.home")
+        vcsUrl = properties.getProperty("maven.url.vcs")
+        issueTrackerUrl = properties.getProperty("maven.url.issues")
+        licenses = ["Apache-2.0"]
+        labels = ['camera', 'scanner', 'zxing', 'android', 'aar', 'barcode']
+        publish = true
+        version {
+            name = properties.getProperty("maven.version")
+            desc = properties.getProperty("maven.info")
+            released = new Date();
+            vcsTag = properties.getProperty("maven.version.tag")
+            gpg {
+                sign = true
+                passphrase = propertiesSecret.getProperty("gpg.secret.password")
+            }
+        }
+    }
+}
+
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task javadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    failOnError false
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}

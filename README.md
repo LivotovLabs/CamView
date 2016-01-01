@@ -25,32 +25,18 @@ CAMView
 Status
 ===
 
-- Current stable version: **n/a**
-- Current development version: **2.0.0.DEV8-SNAPSHOT**
-- Historical releases: **1.1.0** (Note, 1.x versions are not API compatible with the 2.x ones)
-
- Please feel free to share your bugs, feature requests and pull requests of course. The "Issues" section is waiting for you :)
-
- **Please note** - current 2.x version is under heavy development and refactoring. APIs, classes and methods may be changed at any time.
+- Current version: [ ![Download](https://api.bintray.com/packages/livotovlabs/maven/CAMView/images/download.svg) ](https://bintray.com/livotovlabs/maven/CAMView/_latestVersion)
 
 
 Get It
 ===
 
-- Maven repository: http://maven.livotovlabs.pro/content/groups/public
-- Group: eu.livotov.labs
-- Artifact ID: camview
+- Maven repository: jCenter
+- Group: eu.livotov.labs.android
+- Artifact ID: CAMView
 
 ```groovy
-
-repositories {
-    ...
-    maven { url 'http://maven.livotovlabs.pro/content/groups/public' }
-    ...
-}
-
-
-compile ('eu.livotov.labs:camview:2.0.0.DEV8-SNAPSHOT@aar') {transitive=true}
+compile ('eu.livotov.labs.android:CAMView:2.0.0@aar') {transitive=true}
 
 ```
 
@@ -81,3 +67,10 @@ Documentation
 ===
 
  More documentation will be added on release.
+
+
+Contribute
+===
+
+Contribution wanted !
+Please feel free to share your bugs, feature requests and pull requests of course. The "Issues" section is waiting for you :)
