@@ -11,7 +11,7 @@
 
     <Button
         android:id="@+id/btnFlash"
-        android:text="@string/toogle_flash"
+        android:text="@string/toggle_flash"
         android:layout_gravity="right|bottom"
         android:onClick="toggleFlash"
         android:layout_margin="10dp"
