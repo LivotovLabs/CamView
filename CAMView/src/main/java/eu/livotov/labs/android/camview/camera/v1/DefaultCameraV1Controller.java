@@ -1,9 +1,7 @@
 package eu.livotov.labs.android.camview.camera.v1;
 
-import android.annotation.TargetApi;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
-import android.os.Build;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -125,11 +123,6 @@ public class DefaultCameraV1Controller extends AbstractController implements Cam
                 }
             }
 
-            if (Build.VERSION.SDK_INT < 11)
-            {
-                adjustSurfaceHolderPre11();
-            }
-
             if (surfaceHolder == null || surfaceHolder != surfaceView.getHolder())
             {
                 surfaceHolder = surfaceView.getHolder();
@@ -140,19 +133,6 @@ public class DefaultCameraV1Controller extends AbstractController implements Cam
             CameraUtilsV1.setupSurfaceAndCameraForPreview(Integer.parseInt(camera.getCameraId()), rawCameraObject, surfaceView);
             rawCameraObject.startPreview();
             rechargePreviewBuffer();
-        }
-    }
-
-    @TargetApi(10)
-    private void adjustSurfaceHolderPre11()
-    {
-        try
-        {
-            // only to address some old devices weird compat issues
-            surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-        }
-        catch (Throwable ignored)
-        {
         }
     }
 

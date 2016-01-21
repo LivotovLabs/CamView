@@ -3,6 +3,7 @@ package eu.livotov.labs.android.camview;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -67,8 +68,26 @@ public class CameraLiveView extends FrameLayout implements SurfaceHolder.Callbac
     private void initUI()
     {
         surfaceView = new SurfaceView(getContext());
+        //should be adjusted before surface is added to view
+        if (Build.VERSION.SDK_INT < 11)
+        {
+            adjustSurfaceHolderPre11();
+        }
         surfaceView.getHolder().addCallback(this);
         addView(surfaceView);
+    }
+
+    @TargetApi(10)
+    private void adjustSurfaceHolderPre11()
+    {
+        try
+        {
+            // only to address some old devices weird compat issues
+            surfaceView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        }
+        catch (Throwable ignored)
+        {
+        }
     }
 
     /**
