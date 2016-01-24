@@ -8,6 +8,6 @@
     <string name="camera_status_err">Camera Error: %s</string>
     <string name="camera_open_err">Camera Open Error: %s</string>
     <string name="camera_status_stopped">Camera Stopped...</string>
-    <string name="toogle_flash">Toggle Flash</string>
+    <string name="toggle_flash">Toggle Flash</string>
 
 </resources>
