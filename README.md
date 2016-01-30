@@ -1,5 +1,6 @@
 CAMView
 ===
+[![Badge](http://www.libtastic.com/static/osbadges/282.png)](http://www.libtastic.com/technology/282/)
 
  Android library with simple yet powerful components for using device camera in your apps.
 
