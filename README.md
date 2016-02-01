@@ -37,7 +37,7 @@ Get It
 - Artifact ID: CAMView
 
 ```groovy
-compile ('eu.livotov.labs.android:CAMView:2.0.0@aar') {transitive=true}
+compile ('eu.livotov.labs.android:CAMView:2.0.1@aar') {transitive=true}
 
 ```
 
