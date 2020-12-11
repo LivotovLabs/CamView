@@ -1,6 +1,12 @@
+Retirement Notice
+=================
+
+This project is retired and no longer maintained. 
+Unfortunately I do not have enough time to supoprt it in a quality way and also there are number of much better camera / qr scanner libs for Android around.
+
+
 CAMView
 ===
-[![Badge](http://www.libtastic.com/static/osbadges/282.png)](http://www.libtastic.com/technology/282/)
 
  Android library with simple yet powerful components for using device camera in your apps.
 
